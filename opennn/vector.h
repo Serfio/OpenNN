@@ -35,6 +35,8 @@
 #include <vector>
 #include <limits>
 #include <climits>
+#include <ctime>
+
 #ifdef __OPENNN_MPI__
 #include <mpi.h>
 #endif
@@ -42,6 +44,8 @@
 // Eigen includes
 
 #include "../eigen/Eigen"
+
+using namespace std;
 
 namespace OpenNN {
 
@@ -53,17 +57,27 @@ template <class T> T calculate_random_uniform(const T & = -1, const T & = 1);
 
 template <class T> T calculate_random_normal(const T & = 0.0, const T & = 1.0);
 
+template <class T> string write_elapsed_time(const T&);
+
+template <class T> string write_date_from_time_t(const T&);
+
+template <class T> vector<string> split_string(const T&, const char&);
+
+template <class T> void replace_substring(T& source, const T& find, const T& replace);
+
 template <class T> struct Histogram;
 template <class T> struct Statistics;
 template <class T> struct LinearRegressionParameters;
 template <class T> struct LogisticRegressionParameters;
+template <class T> struct KMeansResults;
 
 /// This template represents an array of any kind of numbers or objects.
 /// It inherits from the vector of the standard library, and implements
 /// additional utilities.
 
-template <typename T> class Vector : public std::vector<T> {
+template <typename T> class Vector : public vector<T> {
 public:
+
   // CONSTRUCTORS
 
   // Default constructor.
@@ -80,7 +94,7 @@ public:
 
   // File constructor.
 
-  explicit Vector(const std::string &);
+  explicit Vector(const string &);
 
   // Sequential constructor.
 
@@ -91,6 +105,8 @@ public:
   template <class InputIterator> explicit Vector(InputIterator, InputIterator);
 
   // Copy constructor.
+
+  Vector(const vector<T> &);
 
   Vector(const Vector<T> &);
 
@@ -124,14 +140,21 @@ public:
 
   void set(const size_t &, const T &);
 
-  void set(const std::string &);
+  void set(const string &);
 
   void set(const T &, const double &, const T &);
 
   void set(const Vector &);
+
 #ifdef __OPENNN_MPI__
   void set_MPI(const MPI_Datatype);
 #endif
+
+  T get_first() const;
+  T get_last() const;
+
+
+
   // Initialization methods
 
   void initialize(const T &);
@@ -144,46 +167,154 @@ public:
   void randomize_normal(const double & = 0.0, const double & = 1.0);
   void randomize_normal(const Vector<double> &, const Vector<double> &);
 
+  void randomize_binary(const double & = 0.5, const double & = 0.5);
+
+  void map(Vector<T>&, const T&, const T&);
+  void map(Vector<T>&, Vector<T>&, const T&, const T&, const T&);
+
+  void trim(void);
+  Vector<T> trimmed(void) const;
+
   // Checking methods
 
   bool contains(const T &) const;
 
   bool contains(const Vector<T> &) const;
 
+  bool has_same_elements(const Vector<T>&) const;
+
   bool is_in(const T &, const T &) const;
 
   bool is_constant(const double & = 0.0) const;
+  bool is_constant_string(void) const;
 
   bool is_crescent(void) const;
 
   bool is_decrescent(void) const;
 
   bool is_binary(void) const;
+  bool is_binary(const Vector<size_t>&) const;
 
-  bool Lillieforts_normality_test(void) const;
+  bool is_integer(void) const;
+  bool is_integer(const Vector<size_t>&) const;
 
-  // Other methods
+  bool is_positive(void) const;
+  bool is_negative(void) const;
 
-  size_t count_occurrences(const T &) const;
+  bool perform_Lilliefors_normality_test(const double&) const;
+  Vector<bool> perform_Lilliefors_normality_test(const Vector<double>&) const;
 
-  Vector<size_t> calculate_occurrence_indices(const T &) const;
+  double calculate_normal_distribution_distance(void) const;
+  double calculate_half_normal_distribution_distance(void) const;
+  double calculate_uniform_distribution_distance(void) const;
+
+  Vector<bool> perform_normality_analysis(void) const;
+
+  double calculate_normality_parameter(void) const;
+
+  size_t perform_distribution_distance_analysis(void) const;
+  size_t perform_distribution_distance_analysis_missing_values(const Vector<size_t>&) const;
+
+  int get_lower_index(const size_t&, const T&) const;
+
+  int get_upper_index(const size_t&, const T&) const;
+
+  Vector<T> get_reverse() const;
+
+  Vector<T> impute_time_series_missing_values_mean(const T&) const;
+
+  // String methods
+
+  void replace_substring(const string&, const string&);
+
+  // Count methods
+
+  size_t count_equal_to(const T&) const;
+  size_t count_equal_to(const Vector<T>&) const;
+
+  size_t count_not_equal_to(const T&) const;
+  size_t count_not_equal_to(const Vector<T>&) const;
+
+  size_t count_positive(void) const;
+  size_t count_negative(void) const;
+
+  size_t count_integers(const size_t&) const;
+  size_t count_integers_missing_values(const Vector<size_t>&, const size_t&) const;
+
+  Vector<size_t> get_indices_less_than(const T &) const;
+  Vector<size_t> get_indices_greater_than(const T &) const;
 
   size_t count_greater_than(const T &) const;
 
   size_t count_less_than(const T &) const;
 
-  Vector<size_t> calculate_equal_than_indices(const T &) const;
+  size_t count_greater_equal_to(const T &) const;
+
+  size_t count_less_equal_to(const T &) const;
+
+  size_t count_between(const T &, const T &) const;
+
+  Matrix<T> count_daily_series_occurrences(void) const;
+  Matrix<T> count_weekly_series_occurrences(void) const;
+  Matrix<T> count_monthly_series_occurrences(void) const;
+  Matrix<T> count_yearly_series_occurrences(void) const;
+
+  Matrix<T> count_monthly_series_occurrences(const size_t&, const size_t&, const size_t&, const size_t&) const;
+
+  Matrix<T> count_monthly_occurrences(void) const;
+
+  size_t count_date_occurrences(const size_t&) const;
+  size_t count_month_occurrences(const size_t&) const;
+  size_t count_date_occurrences(const size_t&, const size_t&) const;
+
+  size_t count_contains(const string&) const;
+
+  Vector<T> merge(const Vector<T>&, const char&) const;
+
+  Vector<T> arrange_binary_vector(const Vector<T>&) const;
+  Matrix<T> arrange_binary_matrix(const char& separator = ' ') const;
+
+  Vector<T> filter_equal_to(const T&) const;
+  Vector<T> filter_not_equal_to(const T&) const;
+
+  Vector<T> filter_equal_to(const Vector<T>&) const;
+  Vector<T> filter_not_equal_to(const Vector<T>&) const;
+
+  Vector<T> filter_numbers() const;
+  Vector<T> filter_not_numbers() const;
+
+  Vector<T> get_positive_elements() const;
+
+  Vector<size_t> calculate_between_indices(const T&, const T&) const;
+
+  Vector<size_t> calculate_equal_to_indices(const T &) const;
+  Vector<size_t> calculate_equal_to_indices(const Vector<T>&) const;
+
+  Vector<size_t> calculate_not_equal_to_indices(const T &) const;
+  Vector<size_t> calculate_not_equal_to_indices(const Vector<T> &) const;
+
+  Vector<T> filter_minimum_maximum(const T&, const T&) const;
+
+  Vector<size_t> calculate_contains_indices(const std::string&) const;
 
   Vector<size_t> calculate_less_than_indices(const T &) const;
 
   Vector<size_t> calculate_greater_than_indices(const T &) const;
 
-  Vector<size_t>
-  calculate_total_frequencies(const Vector< Histogram<T> > &) const;
-  Vector<size_t> calculate_total_frequencies_missing_values(
-      const Vector<size_t> missing_values, const Vector< Histogram<T> > &) const;
+  Vector<size_t> calculate_less_equal_to_indices(const T &) const;
 
-  Vector<double> perform_Box_Cox_transformation(const double& lambda = 1) const;
+  Vector<size_t> calculate_greater_equal_to_indices(const T &) const;
+
+  Vector<size_t> calculate_total_frequencies(const Vector< Histogram<T> > &) const;
+
+  Vector<size_t> calculate_total_frequencies_missing_values(
+      const Vector<size_t> &, const Vector< Histogram<T> > &) const;
+
+  Vector<double> perform_Box_Cox_transformation(const double& = 1) const;
+
+  Vector<double> calculate_percentage(const size_t&) const;
+
+  double calculate_error(const Vector<T>&) const;
 
   // Statistics methods
 
@@ -207,8 +338,31 @@ public:
   Histogram<T> calculate_histogram(const size_t & = 10) const;
   Histogram<T> calculate_histogram_binary(void) const;
 
+  Histogram<T> calculate_histogram_integers(const size_t & = 10) const;
+
   Histogram<T> calculate_histogram_missing_values(const Vector<size_t> &,
                                                   const size_t & = 10) const;
+
+  Histogram<T> calculate_histogram_binary_missing_values(const Vector<size_t> &) const;
+
+  Histogram<T> calculate_histogram_integers_missing_values(const Vector<size_t> &,
+                                                           const size_t & = 10) const;
+
+  Vector<T> calculate_moving_average(const T&) const;
+
+  Vector<T> calculate_moving_average_cyclic(const T&) const;
+
+  Vector<double> calculate_simple_moving_average(const size_t&) const;
+
+  Vector<double> calculate_exponential_moving_average(const size_t&) const;
+
+  double calculate_last_exponential_moving_average(const size_t&) const;
+
+  Vector<double> calculate_exponential_moving_average_with_initial_average(const size_t&) const;
+
+  Vector<size_t> calculate_bars_chart(void) const;
+
+  size_t get_first_index(const T&) const;
 
   size_t calculate_minimal_index(void) const;
 
@@ -246,11 +400,29 @@ public:
 
   double calculate_mean(void) const;
 
+  double calculate_mean(const size_t&, const size_t&) const;
+
+  double calculate_linear_trend(void) const;
+
+  double calculate_linear_trend(const size_t&, const size_t&) const;
+
+  double calculate_percentage_of_variation(void) const;
+
+  Vector<double> calculate_percentage_of_variation(const size_t&) const;
+
+  double calculate_last_percentage_of_variation(const size_t&) const;
+
+  T calculate_mode(void) const;
+
+  T calculate_mode_missing_values(const Vector<size_t>&) const;
+
   double calculate_variance(void) const;
 
   double calculate_covariance(const Vector<double>&) const;
 
   double calculate_standard_deviation(void) const;
+
+  Vector<double> calculate_standard_deviation(const size_t&) const;
 
   double calculate_asymmetry(void) const;
 
@@ -262,6 +434,8 @@ public:
 
   Vector<double> calculate_quartiles_missing_values(const Vector<size_t> &) const;
 
+  Vector<double> calculate_percentiles(void) const;
+
   Vector<double> calculate_mean_standard_deviation(void) const;
 
   double calculate_mean_missing_values(const Vector<size_t> &) const;
@@ -270,8 +444,7 @@ public:
 
   double calculate_weighted_mean(const Vector<double> &) const;
 
-  double
-  calculate_standard_deviation_missing_values(const Vector<size_t> &) const;
+  double calculate_standard_deviation_missing_values(const Vector<size_t> &) const;
 
   double calculate_asymmetry_missing_values(const Vector<size_t> &) const;
 
@@ -279,17 +452,17 @@ public:
 
   Statistics<T> calculate_statistics(void) const;
 
-  Statistics<T>
-  calculate_statistics_missing_values(const Vector<size_t> &) const;
+  Statistics<T> calculate_statistics_missing_values(const Vector<size_t> &) const;
 
   Vector<double> calculate_shape_parameters(void) const;
 
-  Vector<double>
-  calculate_shape_parameters_missing_values(const Vector<size_t> &) const;
+  Vector<double> calculate_shape_parameters_missing_values(const Vector<size_t> &) const;
 
-  Vector<double> calculate_box_plots(void) const;
+  Vector<double> calculate_box_plot(void) const;
 
-  Vector<double> calculate_box_plots_missing_values(const Vector<size_t> &) const;
+  Vector<double> calculate_box_plot_missing_values(const Vector<size_t> &) const;
+
+  size_t calculate_sample_index_proportional_probability() const;
 
   // Norm methods
 
@@ -318,18 +491,26 @@ public:
 
   // Correlation methods
 
+  double calculate_correlation(const Vector<T>&) const;
+
   double calculate_linear_correlation(const Vector<T> &) const;
+
+  double calculate_logistic_correlation(const Vector<T> &) const;
+
+  double calculate_spearman_linear_correlation(const Vector<T> &) const;
 
   T calculate_linear_correlation_missing_values(const Vector<T> &,
                                                 const Vector<size_t> &) const;
+
+  T calculate_logistic_correlation_missing_values(const Vector<T> &,
+                                                  const Vector<size_t> &) const;
 
   Vector<double> calculate_autocorrelation(const size_t & = 10) const;
 
   Vector<double> calculate_cross_correlation(const Vector<double> &,
                                              const size_t & = 10) const;
 
-  LinearRegressionParameters<T>
-  calculate_linear_regression_parameters(const Vector<T> &) const;
+  LinearRegressionParameters<T> calculate_linear_regression_parameters(const Vector<T> &) const;
 
   Vector<T> calculate_absolute_value(void) const;
 
@@ -364,14 +545,19 @@ public:
 
   // Rank methods
 
-  Vector<size_t> sort_less_indices(void) const;
+  Vector<size_t> sort_ascending_indices(void) const;
+  Vector<T> sort_ascending_values(void) const;
 
-  Vector<size_t> sort_greater_indices(void) const;
-
+  Vector<size_t> sort_descending_indices(void) const;
+  Vector<T> sort_descending_values(void) const;
 
   Vector<size_t> calculate_less_rank(void) const;
 
   Vector<size_t> calculate_greater_rank(void) const;
+
+  Vector<size_t> calculate_greater_indices(void) const;
+
+  Vector<T> sort_rank(const Vector<size_t>&) const;
 
   // Mathematical operators
 
@@ -417,8 +603,19 @@ public:
 
   // Filtering methods
 
-  void filter_positive(void);
-  void filter_negative(void);
+//  void filter(const T&, const T&);
+
+  Vector<T> filter_positive(void) const;
+  Vector<T> filter_negative(void) const;
+
+  size_t count_dates(const size_t&, const size_t&, const size_t&, const size_t&, const size_t&, const size_t&) const;
+  Vector<size_t> filter_dates(const size_t&, const size_t&, const size_t&, const size_t&, const size_t&, const size_t&) const;
+
+  Vector<size_t> calculate_Tukey_outliers(const double& = 1.5) const;
+  Vector<size_t> calculate_Tukey_outliers_iterative(const double& = 1.5) const;
+
+  Vector<size_t> calculate_histogram_outliers(const size_t&, const size_t&) const;
+  Vector<size_t> calculate_histogram_outliers_iterative(const size_t&, const size_t&) const;
 
   // Scaling methods
 
@@ -434,15 +631,23 @@ public:
 
   Statistics<T> scale_mean_standard_deviation(void);
 
-  void scale_minimum_maximum(const Vector<T> &, const Vector<T> &);
+  void scale_standard_deviation(const T &);
 
-  void scale_mean_standard_deviation(const Vector<T> &, const Vector<T> &);
+  void scale_standard_deviation(const Statistics<T> &);
+
+  Statistics<T> scale_standard_deviation(void);
+
+  void scale_standard_deviation(const Vector<T> &);
+
+  Vector<T> calculate_scaled_minimum_maximum() const;
 
   Vector<T> calculate_scaled_minimum_maximum(const Vector<T> &,
                                              const Vector<T> &) const;
 
   Vector<T> calculate_scaled_mean_standard_deviation(const Vector<T> &,
                                                      const Vector<T> &) const;
+
+  Vector<T> calculate_scaled_standard_deviation(const Vector<T> &) const;
 
   // Unscaling methods
 
@@ -458,53 +663,132 @@ public:
 
   // Arranging methods
 
-  Matrix<T> arrange_diagonal_matrix(void) const;
+  Matrix<T> to_diagonal_matrix(void) const;
 
-  Vector<T> arrange_subvector(const Vector<size_t> &) const;
+  Vector<T> get_subvector(const size_t&, const size_t&) const;
 
-  Vector<T> arrange_subvector_first(const size_t &) const;
+  Vector<T> get_subvector(const Vector<size_t> &) const;
 
-  Vector<T> arrange_subvector_last(const size_t &) const;
+  Vector<T> get_subvector(const Vector<bool> &) const;
+
+  Vector<T> get_first(const size_t &) const;
+
+  Vector<T> get_last(const size_t &) const;
+
+  Vector<T> delete_first(const size_t &) const;
+
+  Vector<T> delete_last(const size_t &) const;
+
+  Vector<T> get_integer_elements(const size_t&) const;
+  Vector<T> get_integer_elements_missing_values(const Vector<size_t>&, const size_t&) const;
 
   // File operations
 
-  void load(const std::string &);
+  void load(const string &);
 
-  void save(const std::string &) const;
+  void save(const string &, const char& = ' ') const;
 
   void tuck_in(const size_t &, const Vector<T> &);
 
   Vector<T> take_out(const size_t &, const size_t &) const;
 
   Vector<T> insert_element(const size_t &, const T &) const;
+  Vector<T> replace_element(const size_t &, const Vector<T> &) const;
+
+  Vector<T> replace_value(const T&, const T&) const;
+
+  Vector<string> split_element(const size_t &, const char&) const;
+
   Vector<T> remove_element(const size_t &) const;
+
+  Vector<T> delete_indices(const Vector<size_t> &) const;
 
   Vector<T> remove_value(const T &) const;
 
   Vector<T> assemble(const Vector<T> &) const;
+  static Vector<T> assemble(const Vector< Vector<T> > &);
 
-  std::vector<T> to_std_vector(void) const;
+  Vector<T> get_difference(const Vector<T> &) const;
+  Vector<T> get_union(const Vector<T> &) const;
+  Vector<T> get_intersection(const Vector<T> &) const;
+
+  Vector<T> get_unique_elements(void) const;
+  Vector<T> get_unique_elements_unsorted(void) const;
+  Vector<size_t> get_unique_elements_indices(void) const;
+  Vector<size_t> count_unique(void) const;
+
+  void print_unique(void) const;
+
+  Vector<T> calculate_top(const size_t&) const;
+
+  Matrix<T> calculate_top_matrix(const size_t&) const;
+
+  void print_top(const size_t&) const;
+
+  vector<T> to_std_vector(void) const;
+
+  Vector<double> to_double_vector(void) const;
+  Vector<int> to_int_vector(void) const;
+  Vector<size_t> to_size_t_vector(void) const;
+  Vector<time_t> to_time_t_vector(void) const;
+  Vector<bool> to_bool_vector(void) const;
+
+  Vector<string> to_string_vector(void) const;
+
+  Vector<double> string_to_double(void) const;
+  Vector<int> string_to_int(void) const;
+  Vector<size_t> string_to_size_t(void) const;
+  Vector<time_t> string_to_time_t(void) const;
+
+  Vector<time_t> www_mmm_ddd_yyyy_hh_mm_ss_to_time(void) const;
+  Vector<time_t> yyyy_mm_to_time(const char& = '/') const;
+  Vector<time_t> dd_mm_yyyy_to_time(const char& = '/') const;
+  Vector<time_t> yyyy_mm_dd_to_time(const char& = '/') const;
+  Matrix<T> dd_mm_yyyy_to_dd_yyyy(const char& = '/') const;
+  Matrix<T> yyyy_mm_dd_to_dd_yyyy(const char& = '/') const;
+  Matrix<T> mm_yyyy_to_mm_yyyy(const char& = '/') const;
+
+  Vector<T> yyyy_mm_dd_to_weekday(const char& = '/') const;
+  Vector<T> yyyy_mm_dd_to_yearday(const char& = '/') const;
+
+  Vector<struct tm> time_stamp_to_time_structure(void) const;
 
   Matrix<T> to_row_matrix(void) const;
 
   Matrix<T> to_column_matrix(void) const;
 
-  void parse(const std::string &);
 
-  std::string to_text() const;
 
-  std::string to_string(const std::string & = " ") const;
+  void parse(const string &);
 
-  Vector<std::string> write_string_vector(const size_t & = 5) const;
+  string to_text(const char& = ',') const;
+  string to_text(const string& = ",") const;
+
+  string vector_to_string(const char&, const char&) const;
+  string vector_to_string(const char&) const;
+  string vector_to_string(void) const;
+
+  string stack_vector_to_string(void) const;
+
+  Vector<string> write_string_vector(const size_t & = 5) const;
 
   Matrix<T> to_matrix(const size_t &, const size_t &) const;
+
+
+  double calculate_logistic_function(const Vector<double>&, const Vector<T>&) const;
+  Vector<double> calculate_logistic_error_gradient(const Vector<double>&, const Vector<T>&) const;
+private:
+
+//  double calculate_logistic_function(const Vector<double>&, const Vector<T>&) const;
+//  Vector<double> calculate_logistic_error_gradient(const Vector<double>&, const Vector<T>&) const;
 };
+
 
 // CONSTRUCTORS
 
 /// Default constructor. It creates a vector of size zero.
 
-template <class T> Vector<T>::Vector(void) : std::vector<T>() {}
+template <class T> Vector<T>::Vector(void) : vector<T>() {}
 
 /// General constructor. It creates a vector of size n, containing n copies of
 /// the default value for Type.
@@ -512,7 +796,7 @@ template <class T> Vector<T>::Vector(void) : std::vector<T>() {}
 
 template <class T>
 Vector<T>::Vector(const size_t &new_size)
-    : std::vector<T>(new_size) {}
+    : vector<T>(new_size) {}
 
 /// Constant reference initialization constructor.
 /// It creates a vector of size n, containing n copies of the type value of
@@ -522,15 +806,15 @@ Vector<T>::Vector(const size_t &new_size)
 
 template <class T>
 Vector<T>::Vector(const size_t &new_size, const T &value)
-    : std::vector<T>(new_size, value) {}
+    : vector<T>(new_size, value) {}
 
 /// File constructor. It creates a vector object by loading its members from a
 /// data file.
 /// @param file_name Name of vector data file.
 
 template <class T>
-Vector<T>::Vector(const std::string &file_name)
-    : std::vector<T>() {
+Vector<T>::Vector(const string &file_name)
+    : vector<T>() {
   load(file_name);
 }
 
@@ -538,7 +822,7 @@ Vector<T>::Vector(const std::string &file_name)
 
 template <class T>
 Vector<T>::Vector(const T &first, const double &step, const T &last)
-    : std::vector<T>() {
+    : vector<T>() {
   set(first, step, last);
 }
 
@@ -547,19 +831,28 @@ Vector<T>::Vector(const T &first, const double &step, const T &last)
 template <class T>
 template <class InputIterator>
 Vector<T>::Vector(InputIterator first, InputIterator last)
-    : std::vector<T>(first, last) {}
+    : vector<T>(first, last) {}
 
 /// Copy constructor. It creates a copy of an existing Vector.
 /// @param other_vector Vector to be copied.
 
 template <class T>
 Vector<T>::Vector(const Vector<T> &other_vector)
-    : std::vector<T>(other_vector) {}
+    : vector<T>(other_vector) {}
+
+
+template <class T>
+Vector<T>::Vector(const vector<T> &other_vector)
+    : vector<T>(other_vector) {
+
+}
 
 // DESTRUCTOR
 
 /// Destructor.
-template <class T> Vector<T>::~Vector(void) {}
+template <class T> Vector<T>::~Vector(void) {
+    vector<T>().swap(*this);
+}
 
 // bool  == (const T&) const
 
@@ -708,13 +1001,13 @@ void Vector<T>::set(const size_t &new_size, const T &new_value) {
   initialize(new_value);
 }
 
-// void set(const std::string&) method
+// void set(const string&) method
 
 /// Sets all the members of a vector object by loading them from a data file.
 /// The format is specified in the OpenNN manual.
 /// @param file_name Name of vector data file.
 
-template <class T> void Vector<T>::set(const std::string &file_name) {
+template <class T> void Vector<T>::set(const string &file_name) {
   load(file_name);
 }
 
@@ -791,16 +1084,50 @@ template <class T> void Vector<T>::set_MPI(const MPI_Datatype mpi_datatype) {
     }
 
     MPI_Barrier(MPI_COMM_WORLD);
+
 }
 #endif
 
-// void initialize(const T&) method
+
+template <class T>
+T Vector<T>::get_first() const
+{
+    return (*this)[0];
+}
+
+
+template <class T>
+T Vector<T>::get_last() const
+{
+    const size_t this_size = this->size();
+
+    return (*this)[this_size-1];
+}
+
+
+template <class T>
+Vector<T> Vector<T>::delete_first(const size_t & elements_number) const
+{
+    const size_t new_size = size() - elements_number;
+
+    return get_last(new_size);
+}
+
+
+template <class T>
+Vector<T> Vector<T>::delete_last(const size_t & elements_number) const
+{
+    const size_t new_size = size() - elements_number;
+
+    return get_first(new_size);
+}
+
 
 /// Initializes all the elements of the vector with a given value.
 /// @param value Type value.
 
 template <class T> void Vector<T>::initialize(const T &value) {
-  std::fill((*this).begin(), (*this).end(), value);
+  fill((*this).begin(), (*this).end(), value);
 }
 
 // void initialize_sequential(void) method
@@ -829,13 +1156,13 @@ void Vector<T>::randomize_uniform(const double &minimum,
 #ifdef __OPENNN_DEBUG__
 
   if(minimum > maximum) {
-    std::ostringstream buffer;
+    ostringstream buffer;
 
     buffer << "OpenNN Exception: Vector Template.\n"
            << "void randomize_uniform(const double&, const double&) method.\n"
            << "Minimum value must be less or equal than maximum value.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
 #endif
@@ -868,18 +1195,18 @@ void Vector<T>::randomize_uniform(const Vector<double> &minimums,
   const size_t maximums_size = maximums.size();
 
   if(minimums_size != this_size || maximums_size != this_size) {
-    std::ostringstream buffer;
+    ostringstream buffer;
 
     buffer << "OpenNN Exception: Vector Template.\n"
            << "void randomize_uniform(const Vector<double>&, const "
               "Vector<double>&) method.\n"
            << "Minimum and maximum sizes must be equal to vector size.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
   if(minimums > maximums) {
-    std::ostringstream buffer;
+    ostringstream buffer;
 
     buffer << "OpenNN Exception: Vector Template.\n"
            << "void randomize_uniform(const Vector<double>&, const "
@@ -887,7 +1214,7 @@ void Vector<T>::randomize_uniform(const Vector<double> &minimums,
            << "Minimum values must be less or equal than their corresponding "
               "maximum values.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
 #endif
@@ -913,13 +1240,13 @@ void Vector<T>::randomize_normal(const double &mean,
 #ifdef __OPENNN_DEBUG__
 
   if(standard_deviation < 0.0) {
-    std::ostringstream buffer;
+    ostringstream buffer;
 
     buffer << "OpenNN Exception: Vector Template.\n"
            << "void randomize_normal(const double&, const double&) method.\n"
            << "Standard deviation must be equal or greater than zero.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
 #endif
@@ -952,7 +1279,7 @@ void Vector<T>::randomize_normal(const Vector<double> &mean,
   const size_t standard_deviation_size = standard_deviation.size();
 
   if(mean_size != this_size || standard_deviation_size != this_size) {
-    std::ostringstream buffer;
+    ostringstream buffer;
 
     buffer
         << "OpenNN Exception: Vector Template.\n"
@@ -960,18 +1287,18 @@ void Vector<T>::randomize_normal(const Vector<double> &mean,
            "Vector<double>&) method.\n"
         << "Mean and standard deviation sizes must be equal to vector size.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
   if(standard_deviation < 0.0) {
-    std::ostringstream buffer;
+    ostringstream buffer;
 
     buffer << "OpenNN Exception: Vector Template.\n"
            << "void randomize_normal(const Vector<double>&, const "
               "Vector<double>&) method.\n"
            << "Standard deviations must be equal or greater than zero.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
 #endif
@@ -981,21 +1308,151 @@ void Vector<T>::randomize_normal(const Vector<double> &mean,
   }
 }
 
-// bool contains(const T&) const method
+template <class T>
+void Vector<T>::randomize_binary(const double& negatives_ratio, const double& positives_ratio)
+{
+    const size_t this_size = this->size();
+
+    if(this_size == 0)
+    {
+        return;
+    }
+
+    const double total_ratio = negatives_ratio + positives_ratio;
+
+    // Get number of instances for training, selection and testing
+
+    const size_t positives_number = (size_t)(positives_ratio*this_size/total_ratio);
+    const size_t negatives_number = this_size - positives_number;
+
+    Vector<size_t> indices(0, 1, this_size-1);
+    random_shuffle(indices.begin(), indices.end());
+
+    size_t i = 0;
+    size_t index;
+
+    // Positives
+
+    size_t count_positives = 0;
+
+    while(count_positives != positives_number)
+    {
+       index = indices[i];
+
+       (*this)[index] = 1;
+       count_positives++;
+
+       i++;
+    }
+
+    // Positives
+
+    size_t count_negatives = 0;
+
+    while(count_negatives != negatives_number)
+    {
+       index = indices[i];
+
+       (*this)[index] = 0;
+       count_negatives++;
+
+       i++;
+    }
+}
+
+
+template <class T>
+void Vector<T>::map(Vector<T>& other_vector, const T& this_value, const T& other_value)
+{
+    const size_t this_size = this->size();
+
+    size_t index = this_size;
+
+    for(size_t i = 0; i < this_size; i++)
+    {
+        if((*this)[i] == this_value)
+        {
+            index = i;
+            break;
+        }
+    }
+
+    if(index != this_size)
+    {
+        other_vector[index] = other_value;
+    }
+}
+
+
+
+template <class T>
+void Vector<T>::map(Vector<T>& other_vector_1, Vector<T>& other_vector_2, const T& this_value, const T& other_value_1, const T& other_value_2)
+{
+    const size_t this_size = this->size();
+
+    size_t index = this_size;
+
+    for(size_t i = 0; i < this_size; i++)
+    {
+        if((*this)[i] == this_value)
+        {
+            index = i;
+            break;
+        }
+    }
+
+    if(index != this_size)
+    {
+        other_vector_1[index] = other_value_1;
+        other_vector_2[index] = other_value_2;
+    }
+}
+
+
+/// Removes whitespaces from the start and the end of each element in this vector of strings.
+
+template <class T>
+void Vector<T>::trim(void)
+{
+    const size_t this_size = this->size();
+
+    for(size_t i = 0; i < this_size; i++)
+    {
+        //prefixing spaces
+
+        (*this)[i] = (*this)[i].erase(0, (*this)[i].find_first_not_of(' '));
+
+        //surfixing spaces
+
+        (*this)[i] = (*this)[i].erase((*this)[i].find_last_not_of(' ') + 1);
+    }
+}
+
+
+/// Returns a vector of strings that has whitespaces removed from the start and the end of each element.
+
+template <class T>
+Vector<T> Vector<T>::trimmed(void) const
+{
+    Vector<T> new_vector(*this);
+    new_vector.trim();
+
+    return(new_vector);
+}
+
 
 /// Returns true if the vector contains a certain value, and false otherwise.
 
 template <class T> bool Vector<T>::contains(const T &value) const {
-  const size_t this_size = this->size();
 
-  for (size_t i = 0; i < this_size; i++) {
-    if((*this)[i] == value) {
-      return (true);
-    }
-  }
+    Vector<T> copy(*this);
 
-  return (false);
+    typename vector<T>::iterator it = find(copy.begin(), copy.end(), value);
+
+    return (it != copy.end());
 }
+
+
 // bool contains(const Vector<T>&) const method
 
 /// Returns true if the vector contains a certain value from a given set, and
@@ -1006,19 +1463,41 @@ template <class T> bool Vector<T>::contains(const Vector<T> &values) const {
     return (false);
   }
 
-  const size_t this_size = this->size();
+  Vector<T> copy(*this);
 
   const size_t values_size = values.size();
 
-  for (size_t i = 0; i < this_size; i++) {
-    for (size_t j = 0; j < values_size; j++) {
-      if((*this)[i] == values[j]) {
-        return (true);
+  for (size_t j = 0; j < values_size; j++) {
+      typename vector<T>::iterator it = find (copy.begin(), copy.end(), values[j]);
+
+      if(it != copy.end())
+      {
+          return (true);
       }
-    }
   }
 
   return (false);
+}
+
+template <class T>
+bool Vector<T>::has_same_elements(const Vector<T>& other_vector) const
+{
+    const size_t this_size = this->size();
+
+    if(this_size != other_vector.size())
+    {
+        return false;
+    }
+
+    for(size_t i = 0; i < this_size; i++)
+    {
+        if(!other_vector.contains((*this)[i]))
+        {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 // bool is_in(const T&, const T&) const method
@@ -1066,14 +1545,67 @@ template <class T> bool Vector<T>::is_constant(const double &tolerance) const {
   }
 }
 
-// bool is_crescent(void) const method
+
+/// Returns true if all the elements in this vector of strings are equal, and false otherwise.
+
+template <class T>
+bool Vector<T>::is_constant_string() const {
+
+  const size_t this_size = this->size();
+
+  if(this_size == 0) {
+    return (false);
+  }
+
+  for(size_t i = 1; i < this_size; i++)
+  {
+      if( (*this)[i] != (*this)[0])
+      {
+          return(false);
+      }
+  }
+
+  return(true);
+}
+
 
 /// Returns true if all the elements in the vector have values which increase
 /// with the index, and false otherwise.
 
-template <class T> bool Vector<T>::is_crescent(void) const {
-  for (size_t i = 0; i < this->size() - 1; i++) {
-    if((*this)[i] > (*this)[i + 1]) {
+template <class T> bool Vector<T>::is_crescent(void) const
+{
+  for (size_t i = 0; i < this->size() - 1; i++)
+  {
+    if((*this)[i] > (*this)[i + 1]) return (false);
+  }
+
+  return (true);
+}
+
+
+/// Returns true if all the elements in the vector have values which decrease
+/// with the index, and false otherwise.
+
+template <class T> bool Vector<T>::is_decrescent(void) const
+{
+  for (size_t i = 0; i < this->size() - 1; i++)
+  {
+    if((*this)[i] < (*this)[i + 1]) return (false);
+  }
+
+  return (true);
+}
+
+
+/// Returns true if all the elements of this vector are equal or greater than zero, and false otherwise.
+
+template <class T>
+bool Vector<T>::is_positive(void) const
+{
+  for (size_t i = 0; i < this->size(); i++)
+  {
+    if((*this)[i] < 0.0)
+    {
       return (false);
     }
   }
@@ -1081,14 +1613,14 @@ template <class T> bool Vector<T>::is_crescent(void) const {
   return (true);
 }
 
-// bool is_decrescent(void) const method
 
-/// Returns true if all the elements in the vector have values which decrease
-/// with the index, and false otherwise.
-
-template <class T> bool Vector<T>::is_decrescent(void) const {
-  for (size_t i = 0; i < this->size() - 1; i++) {
-    if((*this)[i] < (*this)[i + 1]) {
+template <class T>
+bool Vector<T>::is_negative(void) const
+{
+  for (size_t i = 0; i < this->size(); i++)
+  {
+    if((*this)[i] > 0.0)
+    {
       return (false);
     }
   }
@@ -1104,9 +1636,17 @@ template <class T> bool Vector<T>::is_binary(void) const
 {
     const size_t this_size = this->size();
 
-    for (size_t i = 0; i < this_size; i++)
+    Vector<T> values(1,(*this)[0]);
+
+    for (size_t i = 1; i < this_size; i++)
     {
-        if((*this)[i] != 0 && (*this)[i] != 1)
+        const bool contains_value = values.contains((*this)[i]);
+
+        if(!contains_value && values.size() == 1)
+        {
+            values.push_back((*this)[i]);
+        }
+        else if(!contains_value)
         {
             return false;
         }
@@ -1115,11 +1655,80 @@ template <class T> bool Vector<T>::is_binary(void) const
     return true;
 }
 
-// bool Lillieforts_normality_test(void) const method
 
-/// Returns true if the elements in the vector have a normal distribution.
+// bool is_binary(const Vector<size_t>&) const method
 
-template <class T> bool Vector<T>::Lillieforts_normality_test(void) const
+/// Returns true if all the elements in the vector have binary values, and false otherwise.
+/// @param missing_indices Indices of the instances with missing values.
+
+template <class T> bool Vector<T>::is_binary(const Vector<size_t>& missing_indices) const
+{
+    const size_t this_size = this->size();
+
+    for (size_t i = 0; i < this_size; i++)
+    {
+        if(!missing_indices.contains(i))
+        {
+            if((*this)[i] != 0 && (*this)[i] != 1)
+            {
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+
+/// Returns true if all the elements in the vector are integers, and false otherwise.
+
+template <class T> bool Vector<T>::is_integer(void) const
+{
+    const size_t this_size = this->size();
+
+    for (size_t i = 0; i < this_size; i++)
+    {
+        if(floor((*this)[i]) != (*this)[i])
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+
+// bool is_integer(const Vector<size_t>&) const method
+
+/// Returns true if all the elements in the vector are integers, and false otherwise.
+/// @param missing_indices Indices of the instances with missing values.
+
+template <class T> bool Vector<T>::is_integer(const Vector<size_t>& missing_indices) const
+{
+    const size_t this_size = this->size();
+
+    for (size_t i = 0; i < this_size; i++)
+    {
+        if(!missing_indices.contains(i))
+        {
+            if(floor((*this)[i]) != (*this)[i])
+            {
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+
+
+// bool Lilliefors_normality_test(const double&) const method
+
+/// Returns true if the elements in the vector have a normal distribution with a given critical value.
+/// @param critical_value Critical value to be used in the test.
+
+template <class T> bool Vector<T>::perform_Lilliefors_normality_test(const double& critical_value) const
 {
 #ifndef __Cpp11__
     const size_t n = this->size();
@@ -1127,12 +1736,12 @@ template <class T> bool Vector<T>::Lillieforts_normality_test(void) const
     const double mean = this->calculate_mean();
     const double standard_deviation = this->calculate_standard_deviation();
 
-    const double fn = (0.83 + n)/std::sqrt(n) - 0.01;
-    const double Dna = 0.895/fn;
+//    const double fn = (0.83 + n)/sqrt(n) - 0.01;
+//    const double Dna = critical_value/fn;
 
     Vector<T> sorted_vector(*this);
 
-    std::sort(sorted_vector.begin(), sorted_vector.end(), std::less<double>());
+    sort(sorted_vector.begin(), sorted_vector.end(), less<double>());
 
     double Fx;
     double Snx;
@@ -1141,7 +1750,7 @@ template <class T> bool Vector<T>::Lillieforts_normality_test(void) const
 
     for(size_t i = 0; i < n; i++)
     {
-        Fx = 0.5 * std::erfc((mean - (*this)[i])/(standard_deviation*std::sqrt(2)));
+        Fx = 0.5 * erfc((mean - (*this)[i])/(standard_deviation*sqrt(2)));
 
         if((*this)[i] < sorted_vector[0])
         {
@@ -1162,13 +1771,13 @@ template <class T> bool Vector<T>::Lillieforts_normality_test(void) const
             }
         }
 
-        if(D < std::abs(Fx - Snx))
+        if(D < abs(Fx - Snx))
         {
-            D = std::abs(Fx - Snx);
+            D = abs(Fx - Snx);
         }
     }
 
-    if(D < Dna)
+    if(D < critical_value)
     {
         return true;
     }
@@ -1181,35 +1790,990 @@ template <class T> bool Vector<T>::Lillieforts_normality_test(void) const
 #endif
 }
 
-// size_t count_occurrences(const T&) const method
+
+/// Returns true if the elements in the vector have a normal distribution with a given set of critical values.
+/// @param critical_values Critical values to be used in the test.
+
+template <class T> Vector<bool> Vector<T>::perform_Lilliefors_normality_test(const Vector<double>& critical_values) const
+{
+#ifndef __Cpp11__
+    const size_t n = this->size();
+
+    const double mean = this->calculate_mean();
+    const double standard_deviation = this->calculate_standard_deviation();
+
+    Vector<T> sorted_vector(*this);
+
+    sort(sorted_vector.begin(), sorted_vector.end(), less<double>());
+
+    double Fx;
+    double Snx;
+
+    double D = -1;
+
+    for(size_t i = 0; i < n; i++)
+    {
+        Fx = 0.5 * erfc((mean - (*this)[i])/(standard_deviation*sqrt(2)));
+
+        if((*this)[i] < sorted_vector[0])
+        {
+            Snx = 0.0;
+        }
+        else if((*this)[i] >= sorted_vector[n-1])
+        {
+            Snx = 1.0;
+        }
+        else
+        {
+            for(size_t j = 0; j < n-1; j++)
+            {
+                if((*this)[i] >= sorted_vector[j] && (*this)[i] < sorted_vector[j+1])
+                {
+                    Snx = (double)(j+1)/(double)n;
+                }
+            }
+        }
+
+        if(D < abs(Fx - Snx))
+        {
+            D = abs(Fx - Snx);
+        }
+    }
+
+    Vector<bool> normality_test_results(critical_values.size());
+
+    for(size_t i = 0; i < critical_values.size(); i++)
+    {
+        if(D < critical_values[i])
+        {
+            normality_test_results[i] = true;
+        }
+        else
+        {
+            normality_test_results[i] = false;
+        }
+    }
+
+    return normality_test_results;
+
+#else
+    return normality_test_results;
+#endif
+}
+
+
+// double calculate_normal_distribution_distance(void) const
+
+/// Calculates the distance between the empirical distribution of the vector and the
+/// normal distribution.
+
+template <class T> double Vector<T>::calculate_normal_distribution_distance(void) const
+{
+    double normal_distribution_distance = 0.0;
+
+    const size_t n = this->size();
+
+    const double mean = this->calculate_mean();
+    const double standard_deviation = this->calculate_standard_deviation();
+
+    double normal_distribution; // Normal distribution
+    double empirical_distribution; // Empirical distribution
+
+    Vector<T> sorted_vector(*this);
+    sort(sorted_vector.begin(), sorted_vector.end(), less<double>());
+
+    size_t counter = 0;
+
+    for(size_t i = 0; i < n; i++)
+    {
+        normal_distribution = 0.5 * erfc((mean - sorted_vector[i])/(standard_deviation*sqrt(2.0)));
+        counter = 0;
+
+        for(size_t j = 0; j < n; j++)
+        {
+            if(sorted_vector[j] <= sorted_vector[i])
+            {
+                counter++;
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        empirical_distribution = (double)counter/(double)n;
+
+        normal_distribution_distance += abs(normal_distribution - empirical_distribution);
+    }
+
+    return normal_distribution_distance;
+}
+
+
+// double calculate_half_normal_distribution_distance(void) const
+
+/// Calculates the distance between the empirical distribution of the vector and the
+/// half normal distribution.
+
+template <class T> double Vector<T>::calculate_half_normal_distribution_distance(void) const
+{
+    double half_normal_distribution_distance = 0.0;
+
+    const size_t n = this->size();
+
+    const double standard_deviation = this->calculate_standard_deviation();
+
+    double half_normal_distribution; // Half normal distribution
+    double empirical_distribution; // Empirical distribution
+
+    Vector<T> sorted_vector(*this);
+    sort(sorted_vector.begin(), sorted_vector.end(), less<double>());
+
+    size_t counter = 0;
+
+    for(size_t i = 0; i < n; i++)
+    {
+        half_normal_distribution = erf((sorted_vector[i])/(standard_deviation * sqrt(2)));
+        counter = 0;
+
+        for(size_t j = 0; j < n; j++)
+        {
+            if(sorted_vector[j] <= sorted_vector[i])
+            {
+                counter++;
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        empirical_distribution = (double)counter/(double)n;
+
+        half_normal_distribution_distance += abs(half_normal_distribution - empirical_distribution);
+    }
+
+    return half_normal_distribution_distance;
+}
+
+
+// double calculate_half_normal_distribution_distance(void) const
+
+/// Calculates the distance between the empirical distribution of the vector and the
+/// uniform distribution.
+
+template <class T> double Vector<T>::calculate_uniform_distribution_distance(void) const
+{
+    double uniform_distribution_distance = 0.0;
+
+    const size_t n = this->size();
+
+    double uniform_distribution; // Uniform distribution
+    double empirical_distribution; // Empirical distribution
+
+    Vector<T> sorted_vector(*this);
+    sort(sorted_vector.begin(), sorted_vector.end(), less<double>());
+
+    const double minimum = sorted_vector[0];
+    const double maximum = sorted_vector[n-1];
+
+    size_t counter = 0;
+
+    for(size_t i = 0; i < n; i++)
+    {
+        uniform_distribution = (sorted_vector[i]-minimum)/(maximum-minimum);
+        counter = 0;
+
+        for(size_t j = 0; j < n; j++)
+        {
+            if(sorted_vector[j] <= sorted_vector[i])
+            {
+                counter++;
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        empirical_distribution = (double)counter/(double)n;
+
+        uniform_distribution_distance += abs(uniform_distribution - empirical_distribution);
+    }
+
+    return uniform_distribution_distance;
+}
+
+
+/// Performs the Lilliefors normality tests varying the confindence level from 0.05 to 0.5.
+/// It returns a vector containing the results of the tests.
+
+template <class T> Vector<bool> Vector<T>::perform_normality_analysis(void) const
+{
+    const size_t size = this->size();
+
+    double significance_level = 0.05;
+
+    double A_significance_level;
+    double B_significance_level;
+    Vector<double> critical_values(9);
+
+    for(size_t i = 0; i < 9; i++)
+    {
+        A_significance_level = 6.32207539843126
+                               - 17.1398870006148*(1 - significance_level)
+                               + 38.42812675101057*pow((1 - significance_level),2)
+                               - 45.93241384693391*pow((1 - significance_level),3)
+                               + 7.88697700041829*pow((1 - significance_level),4)
+                               + 29.79317711037858*pow((1 - significance_level),5)
+                               - 18.48090137098585*pow((1 - significance_level),6);
+
+        B_significance_level = 12.940399038404
+                               - 53.458334259532*(1 - significance_level)
+                               + 186.923866119699*pow((1 - significance_level),2)
+                               - 410.582178349305*pow((1 - significance_level),3)
+                               + 517.377862566267*pow((1 - significance_level),4)
+                               - 343.581476222384*pow((1 - significance_level),5)
+                               + 92.123451358715*pow((1 - significance_level),6);
+
+        critical_values[i] = sqrt(1/(A_significance_level*size+B_significance_level));
+
+        significance_level += 0.05;
+    }
+
+    return this->Lilliefors_normality_test(critical_values);
+}
+
+
+// double calculate_normality_parameter(void) const
+
+/// @todo
+
+template <class T> double Vector<T>::calculate_normality_parameter(void) const
+{
+    const double maximum = this->calculate_maximum();
+    const double minimum = this->calculate_minimum();
+
+    const size_t n = this->size();
+
+    const double mean = this->calculate_mean();
+    const double standard_deviation = this->calculate_standard_deviation();
+
+    double normal_distribution;
+    double empirical_distribution;
+    double previous_normal_distribution;
+    double previous_empirical_distribution;
+
+    Vector<T> sorted_vector(*this);
+    sort(sorted_vector.begin(), sorted_vector.end(), less<double>());
+
+    double empirical_area = 0.0;
+    double normal_area = 0.0;
+
+    size_t counter = 0;
+
+    for(size_t i = 0; i < n; i++)
+    {
+        normal_distribution = 0.5 * erfc((mean - sorted_vector[i])/(standard_deviation*sqrt(2.0)));
+        counter = 0;
+
+        for(size_t j = 0; j < n; j++)
+        {
+            if(sorted_vector[j] <= sorted_vector[i])
+            {
+                counter++;
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        empirical_distribution = (double)counter/(double)n;
+
+        if(i == 0)
+        {
+            previous_normal_distribution = normal_distribution;
+            previous_empirical_distribution = empirical_distribution;
+        }
+        else
+        {
+            normal_area += 0.5*(sorted_vector[i]-sorted_vector[i-1])*(normal_distribution+previous_normal_distribution);
+            empirical_area += 0.5*(sorted_vector[i]-sorted_vector[i-1])*(empirical_distribution+previous_empirical_distribution);
+
+            previous_normal_distribution = normal_distribution;
+            previous_empirical_distribution = empirical_distribution;
+        }
+    }
+
+    const double uniform_area = (maximum-minimum)/2.0;
+
+    return uniform_area;
+}
+
+
+// size_t perform_distribution_distance_analysis(void) const
+
+/// Calculates the distance between the empirical distribution of the vector and
+/// the normal, half-normal and uniform cumulative distribution. It returns 0, 1
+/// or 2 if the closest distribution is the normal, half-normal or the uniform,
+/// respectively.
+
+template <class T> size_t Vector<T>::perform_distribution_distance_analysis(void) const
+{
+    Vector<double> distances(3, 0.0);
+
+    const size_t n = this->size();
+
+    Vector<T> sorted_vector(*this);
+    sort(sorted_vector.begin(), sorted_vector.end(), less<double>());
+
+    const Statistics<T> statistics = this->calculate_statistics();
+
+    const double mean = statistics.mean;
+    const double standard_deviation = statistics.standard_deviation;
+    const double minimum = sorted_vector[0];
+    const double maximum = sorted_vector[n-1];
+
+    #pragma omp parallel for schedule(dynamic)
+
+    for(int i = 0; i < (int)n; i++)
+    {
+        const double normal_distribution = 0.5 * erfc((mean - sorted_vector[i])/(standard_deviation*sqrt(2)));
+        const double half_normal_distribution = erf((sorted_vector[i])/(standard_deviation * sqrt(2)));
+        const double uniform_distribution = (sorted_vector[i]-minimum)/(maximum-minimum);
+
+        double empirical_distribution;
+
+        size_t counter = 0;
+
+        if((*this)[i] < sorted_vector[0])
+        {
+            empirical_distribution = 0.0;
+        }
+        else if((*this)[i] >= sorted_vector[n-1])
+        {
+            empirical_distribution = 1.0;
+        }
+        else
+        {
+            counter = i + 1;
+
+            for(size_t j = i+1; j < n; j++)
+            {
+                if(sorted_vector[j] <= sorted_vector[i])
+                {
+                    counter++;
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            empirical_distribution = (double)counter/(double)n;
+        }
+
+        #pragma omp critical
+        {
+            distances[0] += abs(normal_distribution - empirical_distribution);
+            distances[1] += abs(half_normal_distribution - empirical_distribution);
+            distances[2] += abs(uniform_distribution - empirical_distribution);
+        }
+    }
+
+    return distances.calculate_minimal_index();
+}
+
+
+// size_t perform_distribution_distance_analysis_missing_values(const Vector<size_t>&) const
+
+/// Calculates the distance between the empirical distribution of the vector and
+/// the normal, half-normal and uniform cumulative distribution. It returns 0, 1
+/// or 2 if the closest distribution is the normal, half-normal or the uniform,
+/// respectively.
+
+template <class T> size_t Vector<T>::perform_distribution_distance_analysis_missing_values(const Vector<size_t>& missing_indices) const
+{
+    Vector<double> distances(3, 0.0);
+
+    double normal_distribution; // Normal distribution
+    double half_normal_distribution; // Half-normal distribution
+    double uniform_distribution; // Uniform distribution
+    double empirical_distribution; // Empirical distribution
+
+    Vector<size_t> used_indices(1,1,this->size());
+    used_indices = used_indices.get_difference(missing_indices);
+
+    const Vector<T> used_values = this->get_subvector(used_indices);
+    const size_t n = used_values.size();
+
+    Vector<T> sorted_vector(used_values);
+    sort(sorted_vector.begin(), sorted_vector.end(), less<double>());
+
+    Statistics<T> statistics = used_values.calculate_statistics();
+
+    const double mean = statistics.mean;
+    const double standard_deviation = statistics.standard_deviation;
+    const double minimum = sorted_vector[0];
+    const double maximum = sorted_vector[n-1];
+
+    if(minimum == maximum || standard_deviation < 1.0e-09)
+    {
+        return 2;
+    }
+
+    size_t counter = 0;
+
+#pragma omp parallel for private(empirical_distribution, normal_distribution, half_normal_distribution, uniform_distribution, counter)
+
+    for(int i = 0; i < n; i++)
+    {
+        normal_distribution = 0.5 * erfc((mean - sorted_vector[i])/(standard_deviation*sqrt(2)));
+        half_normal_distribution = erf((sorted_vector[i])/(standard_deviation * sqrt(2)));
+        uniform_distribution = (sorted_vector[i]-minimum)/(maximum-minimum);
+        counter = 0;
+
+        for(size_t j = 0; j < n; j++)
+        {
+            if(sorted_vector[j] <= sorted_vector[i])
+            {
+                counter++;
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        empirical_distribution = (double)counter/(double)n;
+
+        #pragma omp critical
+        {
+            distances[0] += abs(normal_distribution - empirical_distribution);
+            distances[1] += abs(half_normal_distribution - empirical_distribution);
+            distances[2] += abs(uniform_distribution - empirical_distribution);
+        }
+    }
+
+    return distances.calculate_minimal_index();
+}
+
+
+
+template <class T>
+int Vector<T>::get_lower_index(const size_t& index, const T& value) const
+{
+    if(index != 0)
+    {
+        for(int i = (int)index-1; i > -1; i--)
+        {
+            if((*this)[i] != value)
+            {
+                return(i);
+            }
+        }
+    }
+
+    return(-1);
+}
+
+
+template <class T>
+int Vector<T>::get_upper_index(const size_t& index, const T& value) const
+{
+    const size_t this_size = this->size();
+
+    if(index != this_size-1)
+    {
+        for(int i = (int)index+1; i < this_size; i++)
+        {
+            if((*this)[i] != value)
+            {
+                return(i);
+            }
+        }
+    }
+    return(-1);
+}
+
+
+template <class T>
+Vector<T> Vector<T>::get_reverse() const
+{
+    const size_t this_size = this->size();
+
+    Vector<T> reverse(this_size);
+
+    for(size_t i = 0; i < this_size; i++)
+    {
+        reverse[i] = (*this)[this_size - 1 - i];
+    }
+
+    return reverse;
+}
+
+
+template <class T>
+Vector<T> Vector<T>::impute_time_series_missing_values_mean(const T& value) const
+{
+    const size_t this_size = this->size();
+
+    Vector<T> new_vector(*this);
+
+    int lower_index;
+    int upper_index;
+
+    for(size_t i = 0; i < this_size; i++)
+    {
+        if((*this)[i] == value)
+        {
+            lower_index = get_lower_index(i, value);
+
+            upper_index = get_upper_index(i, value);
+
+            if(lower_index != -1 && upper_index != -1)
+            {
+                new_vector[i] = (new_vector[upper_index] + new_vector[lower_index])/2.0;
+            }
+            else if(lower_index != -1 && upper_index == -1)
+            {
+                new_vector[i] = new_vector[lower_index];
+            }
+            else if(lower_index == -1 && upper_index != -1)
+            {
+                new_vector[i] = new_vector[upper_index];
+            }
+            else
+            {
+                cout << "Error: impute_time_series_missing_values_mean" << endl;
+            }
+        }
+    }
+
+    return(new_vector);
+}
+
+
+//template <class T>
+//Vector<T> Vector<T>::append_string(const string& append) const
+//{
+//    const size_t this_size = this->size();
+
+//    Vector<T> new_vector(this_size);
+
+//    for (size_t i = 0; i < this_size; i++)
+//    {
+//        new_vector[i] = (*this)[i] + append;
+//    }
+
+//    return(new_vector);
+//}
+
+
+/// Replaces a substring by another one in each element of this vector.
+/// @param find_what String to be replaced.
+/// @param replace_with String to be put instead.
+
+template <class T>
+void Vector<T>::replace_substring(const string& find_what, const string& replace_with)
+{
+    const size_t size = this->size();
+
+    for(size_t i = 0; i < size; i++)
+    {
+        size_t position = 0;
+
+        while((position = (*this)[i].find(find_what, position)) != string::npos)
+        {
+             (*this)[i].replace(position, find_what.length(), replace_with);
+
+             position += replace_with.length();
+        }
+    }
+}
+
 
 /// Returns the number of times that a certain value is contained in the vector.
+/// @param value Value to be counted.
 
-template <class T> size_t Vector<T>::count_occurrences(const T &value) const {
-  const size_t this_size = this->size();
-
-  size_t count = 0;
-
-  for (size_t i = 0; i < this_size; i++) {
-    if((*this)[i] == value) {
-      count++;
-    }
-  }
+template <class T>
+size_t Vector<T>::count_equal_to(const T &value) const
+{
+  const size_t count = std::count(this->begin(), this->end(), value);
 
   return (count);
 }
 
-// Vector<size_t> calculate_occurrence_indices(const T&) const method
 
-/// Returns the vector indices at which the vector elements take some given
-/// value.
+/// Returns the number of times that certain values are contained in the vector.
+/// @param values Vector of values to be counted.
+
+template <class T>
+size_t Vector<T>::count_equal_to(const Vector<T> &values) const
+{
+    const size_t values_size = values.size();
+
+    size_t count = 0;
+
+    for (size_t i = 0; i < values_size; i++)
+    {
+        count += std::count(this->begin(), this->end(), values[i]);
+    }
+
+    return (count);
+}
+
+
+/// Returns the number of elemements that are not equal to a certain value.
 /// @param value Value.
 
 template <class T>
-Vector<size_t> Vector<T>::calculate_occurrence_indices(const T &value) const {
+size_t Vector<T>::count_not_equal_to(const T &value) const
+{
+    const size_t this_size = this->size();
+
+    size_t count = 0;
+
+    for(size_t i = 0; i < this_size; i++)
+    {
+        if((*this)[i] != value)
+        {
+            count++;
+        }
+    }
+
+  return (count);
+}
+
+
+/// Returns the number of elemements that are not equal to certain values.
+/// @param values Vector of values.
+
+template <class T> size_t Vector<T>::count_not_equal_to(const Vector<T> &values) const
+{
+    const size_t this_size = this->size();
+
+    const size_t equal_to_count = count_equal_to(values);
+
+    return (this_size - equal_to_count);
+}
+
+
+/// Returns the number of elements that are equal or greater than zero.
+
+template <class T>
+size_t Vector<T>::count_positive(void) const
+{
+    const size_t this_size = this->size();
+
+    size_t count = 0;
+
+    for(size_t i = 0; i < this_size; i++)
+    {
+        if((*this)[i] > 0)
+        {
+            count++;
+        }
+    }
+
+  return (count);
+}
+
+
+template <class T>
+size_t Vector<T>::count_negative(void) const
+{
+    const size_t this_size = this->size();
+
+    size_t count = 0;
+
+    for(size_t i = 0; i < this_size; i++)
+    {
+        if((*this)[i] < 0)
+        {
+            count++;
+        }
+    }
+
+  return (count);
+}
+
+
+template <class T>
+Vector<T> Vector<T>::arrange_binary_vector(const Vector<T>& unique_items) const
+{
+    const size_t unique_items_number = unique_items.size();
+
+    Vector<T> binary_vector(unique_items_number);
+
+    for(size_t i = 0; i < unique_items_number; i++)
+    {
+        if(this->contains(unique_items[i]))
+        {
+            binary_vector[i] = "1";
+        }
+        else
+        {
+            binary_vector[i] = "0";
+        }
+    }
+
+    return(binary_vector);
+}
+
+
+template <class T>
+Matrix<T> Vector<T>::arrange_binary_matrix(const char& separator) const
+{
+    const size_t this_size = this->size();
+
+    const Vector<T> unique_mixes = get_unique_elements();
+
+    Vector< Vector<T> > items(unique_mixes.size());
+
+    Vector<T> unique_items;
+
+    for(int i = 0; i < unique_mixes.size(); i++)
+    {
+        items[i] = unique_mixes.split_element(i, separator);
+
+        unique_items = unique_items.assemble(items[i]).get_unique_elements();
+    }
+
+    const size_t unique_items_number = unique_items.size();
+
+    Matrix<T> binary_matrix(this_size, unique_items_number);
+
+    Vector<string> elements;
+
+    Vector<T> binary_items(unique_items_number);
+
+    for(size_t i = 0; i < this_size; i++)
+    {
+        elements = split_element(i, separator);
+
+        binary_items = elements.arrange_binary_vector(unique_items);
+
+        binary_matrix.set_row(i, binary_items);
+    }
+
+    return(binary_matrix);
+}
+
+
+template <class T>
+Vector<T> Vector<T>::filter_equal_to(const T& value) const
+{
+    const size_t this_size = this->size();
+
+    const size_t new_size = count_equal_to(value);
+
+    Vector<T> new_vector(new_size);
+
+    size_t index = 0;
+
+    for(size_t i = 0; i < this_size; i++)
+    {
+        if((*this)[i] == value)
+        {
+            new_vector[count] = (*this)[i];
+            index++;
+        }
+    }
+
+    return(new_vector);
+}
+
+
+/// Returns the elements that are different to a given value.
+/// @param value Comparison value.
+
+template <class T>
+Vector<T> Vector<T>::filter_not_equal_to(const T& value) const
+{
+    const size_t this_size = this->size();
+
+    const size_t new_size = count_not_equal_to(value);
+
+    Vector<T> new_vector(new_size);
+
+    size_t index = 0;
+
+    for(size_t i = 0; i < this_size; i++)
+    {
+        if((*this)[i] != value)
+        {
+            new_vector[index] = (*this)[i];
+            index++;
+        }
+    }
+
+    return(new_vector);
+}
+
+
+template <class T>
+Vector<T> Vector<T>::filter_equal_to(const Vector<T>& values) const
+{
+    const Vector<size_t> indices = calculate_equal_to_indices(values);
+
+    return get_subvector(indices);
+}
+
+
+template <class T>
+Vector<T> Vector<T>::filter_not_equal_to(const Vector<T>& values) const
+{
+    const Vector<size_t> indices = calculate_not_equal_to_indices(values);
+
+//    if(indices.empty()) return Vector<T>(*this);
+//    else
+
+    return get_subvector(indices);
+}
+
+
+/// Returns a vector containing the elements of this vector which are equal or greater than zero.
+
+template <class T>
+Vector<T> Vector<T>::get_positive_elements(void) const
+{
+    const size_t this_size = this->size();
+    const size_t new_size = count_positive();
+
+    Vector<T> new_vector(new_size);
+
+    size_t count = 0;
+
+    for(size_t i = 0; i < this_size; i++)
+    {
+        if((*this)[i] >= 0)
+        {
+            new_vector[count] = (*this)[i];
+            count++;
+        }
+    }
+
+    return(new_vector);
+}
+
+
+/// Returns the number of different integers in the vector or 0 if the number of different
+/// integers in the vector is greater than a given numbe of if there are numbers in the
+/// vector which are not integers.
+/// @param maximum_integers Maximum number of different integers to count.
+
+template <class T> size_t Vector<T>::count_integers(const size_t& maximum_integers) const
+{
+    if(!this->is_integer())
+    {
+        return 0;
+    }
+
+    const size_t this_size = this->size();
+
+    Vector<T> integers;
+    size_t integers_count = 0;
+
+    for(size_t i = 0; i < this_size; i++)
+    {
+        if(!integers.contains((*this)[i]))
+        {
+            integers.push_back((*this)[i]);
+            integers_count++;
+        }
+
+        if(integers_count > maximum_integers)
+        {
+            return 0;
+        }
+    }
+
+    return integers_count;
+}
+
+
+/// Returns the number of different integers in the vector or 0 if the number of different
+/// integers in the vector is greater than a given numbe of if there are numbers in the
+/// vector which are not integers.
+/// @param missing_indices Indices of the instances with missing values.
+/// @param maximum_integers Maximum number of different integers to count.
+
+template <class T> size_t Vector<T>::count_integers_missing_values(const Vector<size_t>& missing_indices, const size_t& maximum_integers) const
+{
+    if(!this->is_integer(missing_indices))
+    {
+        return 0;
+    }
+
+    const size_t this_size = this->size();
+
+    Vector<T> integers;
+    size_t integers_count = 0;
+
+    for(size_t i = 0; i < this_size; i++)
+    {
+        if(!missing_indices.contains(i))
+        {
+            if(!integers.contains((*this)[i]))
+            {
+                integers.push_back((*this)[i]);
+                integers_count++;
+            }
+
+            if(integers_count > maximum_integers)
+            {
+                return 0;
+            }
+        }
+    }
+
+    return integers_count;
+}
+
+
+template <class T>
+Vector<size_t> Vector<T>::calculate_between_indices(const T& minimum, const T& maximum) const
+{
+    const size_t this_size = this->size();
+
+    const size_t new_size = count_between(minimum, maximum);
+
+    Vector<size_t> indices(new_size);
+
+    size_t index = 0;
+
+    for(size_t i = 0; i < this_size; i++)
+    {
+        if((*this)[i] >= minimum && (*this)[i] <= maximum)
+        {
+            indices[index] = i;
+
+            index++;
+        }
+    }
+
+    return indices;
+}
+
+
+/// Returns the vector indices at which the vector elements take some given value.
+/// @param value Value.
+
+template <class T>
+Vector<size_t> Vector<T>::calculate_equal_to_indices(const T &value) const
+{
   const size_t this_size = this->size();
 
-  const size_t occurrences_number = count_occurrences(value);
+  const size_t occurrences_number = count_equal_to(value);
+
+  if(occurrences_number == 0)
+  {
+      Vector<size_t> occurrence_indices;
+
+      return (occurrence_indices);
+  }
 
   Vector<size_t> occurrence_indices(occurrences_number);
 
@@ -1225,12 +2789,154 @@ Vector<size_t> Vector<T>::calculate_occurrence_indices(const T &value) const {
   return (occurrence_indices);
 }
 
-// size_t count_greater_than(const T&) const method
+
+/// Returns the indices of the elements that are equal to given values.
+/// @param values Vector of values.
+
+template <class T>
+Vector<size_t> Vector<T>::calculate_equal_to_indices(const Vector<T>&values) const
+{
+    const size_t this_size = this->size();
+
+    const size_t occurrences_number = count_equal_to(values);
+
+    if(occurrences_number == 0)
+    {
+        Vector<size_t> occurrence_indices;
+
+        return (occurrence_indices);
+    }
+
+    Vector<size_t> occurrence_indices(occurrences_number);
+
+    size_t index = 0;
+
+    for (size_t i = 0; i < this_size; i++)
+    {
+        if(values.contains((*this)[i]))
+        {
+            occurrence_indices[index] = i;
+            index++;
+        }
+    }
+
+    return (occurrence_indices);
+}
+
+
+/// Returns the indices of the elements that are not equal to a given value.
+/// @param value Element value.
+
+template <class T>
+Vector<size_t> Vector<T>::calculate_not_equal_to_indices(const T &value) const {
+
+    const size_t this_size = this->size();
+
+  const size_t not_equal_to_count = count_not_equal_to(value);
+
+  Vector<size_t> not_equal_to_indices(not_equal_to_count);
+
+  size_t index = 0;
+
+  for (size_t i = 0; i < this_size; i++) {
+    if((*this)[i] != value) {
+      not_equal_to_indices[index] = i;
+      index++;
+    }
+  }
+
+  return (not_equal_to_indices);
+}
+
+
+/// Returns the indices of the elements that are not equal to given values.
+/// @param values Vector of values.
+
+template <class T>
+Vector<size_t> Vector<T>::calculate_not_equal_to_indices(const Vector<T> &values) const
+{
+    const size_t this_size = this->size();
+
+    const size_t occurrences_number = count_not_equal_to(values);
+
+    if(occurrences_number == 0) return Vector<size_t>();
+
+    Vector<size_t> occurrence_indices(occurrences_number);
+
+    size_t index = 0;
+
+    for (size_t i = 0; i < this_size; i++)
+    {
+        if(!values.contains((*this)[i]))
+        {
+            occurrence_indices[index] = i;
+            index++;
+        }
+    }
+
+    return (occurrence_indices);
+}
+
+
+/// Returns the indices of the elements which are less than a given value.
+/// @param value Value.
+
+template <class T>
+Vector<size_t> Vector<T>::get_indices_less_than(const T &value) const {
+
+    const size_t this_size = this->size();
+
+  const size_t less_than_count = count_less_than(value);
+
+  Vector<size_t> less_than_indices(less_than_count);
+
+  size_t index = 0;
+
+  for (size_t i = 0; i < this_size; i++)
+  {
+    if((*this)[i] < value)
+    {
+      less_than_indices[index] = i;
+      index++;
+    }
+  }
+
+  return (less_than_indices);
+}
+
+
+/// Returns the indices of the elements which are less than a given value.
+/// @param value Value.
+
+template <class T>
+Vector<size_t> Vector<T>::get_indices_greater_than(const T &value) const
+{
+  const size_t this_size = this->size();
+
+  const size_t count = count_greater_than(value);
+
+  Vector<size_t> indices(count);
+
+  size_t index = 0;
+
+  for (size_t i = 0; i < this_size; i++)
+  {
+    if((*this)[i] > value)
+    {
+      indices[index] = i;
+      index++;
+    }
+  }
+
+  return (indices);
+}
+
 
 /// Returns the number of elements which are greater than some given value.
 /// @param value Value.
 
-template <class T> size_t Vector<T>::count_greater_than(const T &value) const {
+template <class T> size_t Vector<T>::count_greater_than(const T &value) const
+{
   const size_t this_size = this->size();
 
   size_t count = 0;
@@ -1244,7 +2950,6 @@ template <class T> size_t Vector<T>::count_greater_than(const T &value) const {
   return (count);
 }
 
-// size_t count_less_than(const T&) const method
 
 /// Returns the number of elements which are less than some given value.
 /// @param value Value.
@@ -1263,28 +2968,593 @@ template <class T> size_t Vector<T>::count_less_than(const T &value) const {
   return (count);
 }
 
-// Vector<size_t> calculate_equal_than_indices(const T&) const method
 
-/// Returns the vector indices at which the vector elements are equal than some
-/// given value.
+/// Returns the number of elements which are greater than or equal to some given value.
 /// @param value Value.
 
-template <class T>
-Vector<size_t> Vector<T>::calculate_equal_than_indices(const T &value) const {
+template <class T> size_t Vector<T>::count_greater_equal_to(const T &value) const {
   const size_t this_size = this->size();
 
-  Vector<size_t> equal_than_indices;
+  size_t count = 0;
 
   for (size_t i = 0; i < this_size; i++) {
-    if((*this)[i] == value) {
-      equal_than_indices.push_back(i);
+    if((*this)[i] >= value) {
+      count++;
     }
   }
 
-  return (equal_than_indices);
+  return (count);
 }
 
-// Vector<size_t> calculate_less_than_indices(const T&) const method
+
+/// Returns the number of elements which are less or equal than some given value.
+/// @param value Value.
+
+template <class T> size_t Vector<T>::count_less_equal_to(const T &value) const {
+
+    const size_t count = std::count_if(this->begin(), this->end(), [value](size_t elem){ return elem <= value; });
+
+    return (count);
+}
+
+
+/// Returns the number of elements which are equal or greater than a minimum value
+/// and equal or less than a maximum value.
+/// @param minimum Minimum value.
+/// @param maximum Maximum value.
+
+template <class T>
+size_t Vector<T>::count_between(const T &minimum, const T &maximum) const
+{
+  const size_t this_size = this->size();
+
+  size_t count = 0;
+
+  for (size_t i = 0; i < this_size; i++)
+  {
+    if((*this)[i] >= minimum && (*this)[i] <= maximum) count++;
+  }
+
+  return (count);
+}
+
+
+/// Returns the number of elements in this timestamp vector which correspond to a given year.
+/// @param year Year.
+
+template <class T>
+size_t Vector<T>::count_date_occurrences(const size_t& year) const
+{
+    const size_t this_size = this->size();
+
+    time_t time;
+
+    struct tm* date_info;
+
+    size_t count = 0;
+
+    for(size_t i = 0; i < this_size; i++)
+    {
+        time = (*this)[i];
+
+        date_info = gmtime(&time);
+
+        if(date_info->tm_year+1900 == year)
+        {
+            count++;
+        }
+    }
+
+    return(count);
+}
+
+
+/// Returns a matrix with the date occurrences in this vector of timestamps.
+/// Data goes from the first to the last date in this vector.
+/// The first column is the day of the month.
+/// The second column is the month.
+/// The third column is the year.
+/// The fourth column is the number of occurrences for that date.
+
+template <class T>
+Matrix<T> Vector<T>::count_daily_series_occurrences(void) const
+{
+    const time_t start_date = calculate_minimum();
+    const time_t end_date = calculate_maximum();
+
+    const size_t day_seconds = 60*60*24;
+
+    const size_t days_number = (size_t)difftime(end_date, start_date)/day_seconds;
+
+    Matrix<T> count(days_number, 4, 0);
+
+    time_t date;
+    struct tm* date_info;
+
+    size_t day;
+    size_t month;
+    size_t year;
+
+    for(size_t i = 0; i < days_number; i++)
+    {
+        date = start_date + i*day_seconds;
+
+        date_info = gmtime(&date);
+
+        day = date_info->tm_mday;
+        month = date_info->tm_mon+1;
+        year = date_info->tm_year+1900;
+
+        count(i, 0) = day;
+        count(i, 1) = month;
+        count(i, 2) = year;
+    }
+
+    const size_t this_size = this->size();
+
+    size_t row_index;
+
+    for(size_t i = 0; i < this_size; i++)
+    {
+        date = (*this)[i];
+
+        row_index = (size_t)difftime(date, start_date)/day_seconds;
+
+        count(row_index, 3)++;
+    }
+
+    return(count);
+}
+
+
+/// Returns a matrix with the weekly occurrences in this vector of timestamps.
+/// Data goes from the first to the last date in this vector.
+/// The first column is the week of the year.
+/// The second column is the year.
+/// The third column is the number of occurrences for that week.
+
+template <class T>
+Matrix<T> Vector<T>::count_weekly_series_occurrences(void) const
+{
+    const time_t start_date = calculate_minimum();
+    const time_t end_date = calculate_maximum();
+
+    const size_t week_seconds = 60*60*24*7;
+
+    const size_t weeks_number = (size_t)difftime(end_date, start_date)/week_seconds;
+
+    Matrix<T> count(weeks_number, 3, 0);
+
+    time_t date;
+    struct tm* date_info;
+
+    size_t year;
+    size_t week;
+
+    char buffer[64];
+
+    for(size_t i = 0; i < weeks_number; i++)
+    {
+        date = start_date + i*week_seconds;
+
+        date_info = gmtime(&date);
+
+        if (strftime(buffer, sizeof buffer, "%W", date_info) != 0)
+        {
+            week = atoi(buffer);
+        }
+        else
+        {
+            cout << "Unkown week number" << endl;
+        }
+
+        year = date_info->tm_year+1900;
+
+        count(i, 0) = week;
+        count(i, 1) = year;
+    }
+
+    const size_t this_size = this->size();
+
+    size_t row_index;
+
+    for(size_t i = 0; i < this_size; i++)
+    {
+        date = (*this)[i];
+
+        row_index = (size_t)difftime(date, start_date)/week_seconds;
+
+        count(row_index, 2)++;
+    }
+
+    return(count);
+}
+
+
+/// Returns a matrix with the month occurrences in this vector of timestamps.
+/// Data goes from the first to the last date in this vector.
+/// The first column is the month.
+/// The second column is the year.
+/// The third column is the number of occurrences for that month.
+
+template <class T>
+Matrix<T> Vector<T>::count_monthly_series_occurrences(void) const
+{            
+    const time_t start_date = calculate_minimum();
+    const time_t end_date = calculate_maximum();
+
+    time_t time;
+    struct tm* date_info;
+
+    date_info = gmtime(&start_date);
+
+    const int start_month = date_info->tm_mon+1;
+    const int start_year = date_info->tm_year+1900;
+
+    date_info = gmtime(&end_date);
+
+    const int end_month = date_info->tm_mon+1;
+    const int end_year = date_info->tm_year+1900;
+
+    const size_t months_number = (end_year-start_year)*12 + end_month - start_month + 1;
+
+    Matrix<T> count(months_number, 4, 0);
+
+    size_t month;
+    size_t year;
+    size_t division;
+
+    for(size_t i = 0; i < months_number; i++)
+    {
+        // Month
+
+        month = start_month + i;
+
+        division = (month-1)/12;
+
+        if (month > 12)
+        {
+            month = month - (12 * division);
+        }
+
+        count(i, 0) = month;
+
+        // Year
+
+        year = start_year + (i+start_month-1)/12;
+
+        count(i, 1) = year;
+    }
+
+    const size_t this_size = this->size();
+
+    size_t row_index;
+
+    for(size_t i = 0; i < this_size; i++)
+    {
+        time = (*this)[i];
+
+        date_info = gmtime(&time);
+
+        month = date_info->tm_mon+1;
+        year = date_info->tm_year+1900;
+
+        row_index = (year-start_year)*12 + month - start_month;
+
+        count(row_index, 2)++;
+    }
+
+    for(size_t i = 0; i < months_number; i++)
+    {
+        count(i, 3) = count(i, 2)*100.0/this_size;
+    }
+
+    return(count);
+}
+
+
+/// Returns a matrix with the yearly occurrences in this vector of timestamps.
+/// Data goes from the first to the last date in this vector.
+/// The first column is the year.
+/// The fourth column is the number of occurrences for that year.
+
+template <class T>
+Matrix<T> Vector<T>::count_yearly_series_occurrences(void) const
+{
+    const time_t start_date = calculate_minimum();
+    const time_t end_date = calculate_maximum();
+
+    struct tm* date_info;
+
+    date_info = gmtime(&start_date);
+
+    const int start_year = date_info->tm_year+1900;
+
+    date_info = gmtime(&end_date);
+
+    const int end_year = date_info->tm_year+1900;
+
+    const size_t years_number = end_year-start_year+1;
+
+    Matrix<T> yearly_orders(years_number, 2);
+
+    for(size_t i = 0; i < years_number; i++)
+    {
+        const size_t year = start_year + i;
+
+        const size_t orders_number = count_date_occurrences(year);
+
+        yearly_orders(i, 0) = year;
+        yearly_orders(i, 1) = orders_number;
+    }
+
+    return (yearly_orders);
+}
+
+
+/// Returns a matrix with the monthly occurrences in this vector of timestamps, between a stard date and an end date.
+/// The first column is the month.
+/// The second column is the year.
+/// The third column is the number of occurrences for that month.
+/// @param start_month Start month.
+/// @param start_year Start year.
+/// @param end_month End month.
+/// @param end_year End year.
+
+template <class T>
+Matrix<T> Vector<T>::count_monthly_series_occurrences(const size_t& start_month, const size_t& start_year,
+                                                      const size_t& end_month, const size_t& end_year) const
+{
+    time_t time;
+
+    struct tm* date_info;
+
+    const size_t months_number = (end_year-start_year)*12 + end_month - start_month + 1;
+
+    Matrix<T> count(months_number, 3, 0);
+
+    size_t month;
+    size_t year;
+    size_t division;
+
+    for(size_t i = 0; i < months_number; i++)
+    {
+        // Month
+
+        month = start_month + i;
+
+        division = (month-1)/12;
+
+        if (month > 12)
+        {
+            month = month - (12 * division);
+        }
+
+        count(i, 0) = month;
+
+        // Year
+
+        year = start_year + (i+start_month-1)/12;
+
+        count(i, 1) = year;
+    }
+
+    const size_t this_size = this->size();
+
+    size_t row_index;
+
+    for(size_t i = 0; i < this_size; i++)
+    {
+        time = (*this)[i];
+
+        date_info = gmtime(&time);
+
+        month = date_info->tm_mon+1;
+        year = date_info->tm_year+1900;
+
+        row_index = (year-start_year)*12 + month - start_month;
+
+        count(row_index, 2)++;
+    }
+
+    return(count);
+}
+
+
+/// Performs the monthly analysis per year with the input vector.
+/// It returns a matrix containing 12 rows and the number of columns equal to years number.
+
+template <class T>
+Matrix<T> Vector<T>::count_monthly_occurrences(void) const
+{
+    const time_t start_date = calculate_minimum();
+    const time_t end_date = calculate_maximum();
+
+    struct tm* date_info;
+
+    date_info = gmtime(&start_date);
+
+    const int start_year = date_info->tm_year+1900;
+
+    date_info = gmtime(&end_date);
+
+    const int end_year = date_info->tm_year+1900;
+
+    const size_t months_number = 12;
+
+    const size_t years_number = end_year - start_year + 1;
+
+    Matrix<T> count(months_number, years_number+1, 0);
+
+    for(size_t i = 0; i < months_number; i++)
+    {
+        size_t month = i + 1;
+
+        count(i, 0) = (double)month;
+
+        for (size_t j = 0; j < years_number; j++)
+        {
+            size_t year = start_year + j;
+
+            const size_t orders_number = count_date_occurrences(month, year);
+
+            count(i,j+1) = (double)orders_number;
+        }
+    }
+
+    return(count);
+}
+
+
+/// Returns the number of elements in this timestamp vector which correspond to a given month.
+/// @param month Month.
+
+template <class T>
+size_t Vector<T>::count_month_occurrences(const size_t& month) const
+{
+    const size_t this_size = this->size();
+
+    time_t time;
+
+    struct tm* date_info;
+
+    size_t count = 0;
+
+    for(size_t i = 0; i < this_size; i++)
+    {
+        time = (*this)[i];
+
+        date_info = gmtime(&time);
+
+        if(date_info->tm_mon+1 == month)
+        {
+            count++;
+        }
+    }
+
+    return(count);
+}
+
+
+/// Returns the number of elements in this timestamp vector which correspond to a given date.
+/// @param month Month.
+/// @param year Year.
+
+template <class T>
+size_t Vector<T>::count_date_occurrences(const size_t& month, const size_t& year) const
+{
+    const size_t this_size = this->size();
+
+    time_t time;
+
+    struct tm* date_info;
+
+    size_t count = 0;
+
+    for(size_t i = 0; i < this_size; i++)
+    {
+        time = (*this)[i];
+
+        date_info = gmtime(&time);
+
+        if(date_info->tm_mon+1 == month && date_info->tm_year+1900 == year)
+        {
+            count++;
+        }
+    }
+
+    return(count);
+}
+
+
+/// Returns the number of elements in this string vector which contains a given substring.
+/// @param find_what Substring to be found.
+
+template <class T>
+size_t Vector<T>::count_contains(const string& find_what) const
+{
+    const size_t this_size = this->size();
+
+    size_t count = 0;
+
+    for(size_t i = 0; i < this_size; i++)
+    {
+        if((*this)[i].find(find_what) != string::npos)
+        {
+             count++;
+        }
+    }
+
+    return(count);
+}
+
+
+/// Appends a different string onto the end of each string in this vector.
+/// @param other_vector Vector of strings to be appended.
+/// @param separator Delimiter char between both strings.
+
+template <class T>
+Vector<T> Vector<T>::merge(const Vector<T>& other_vector, const char& separator) const
+{
+    const size_t this_size = this->size();
+
+    Vector<T> merged(this_size);
+
+    for(size_t i = 0; i < this_size; i++)
+    {
+        merged[i] = (*this)[i] + separator + other_vector[i];
+    }
+
+    return(merged);
+}
+
+
+/// Returns the elements that are equal or greater than a minimum value
+/// and less or equal to a maximum value.
+/// @param minimum Minimum value.
+/// @param maximum Maximum value.
+
+template <class T>
+Vector<T> Vector<T>::filter_minimum_maximum(const T &minimum, const T &maximum) const
+{
+    const size_t this_size = this->size();
+    const size_t new_size = count_between(minimum, maximum);
+
+    Vector<T> new_vector(new_size);
+
+  size_t count = 0;
+
+  for (size_t i = 0; i < this_size; i++) {
+    if((*this)[i] >= minimum &&  (*this)[i] <= maximum) {
+      new_vector[count] = (*this)[i];
+      count++;
+    }
+  }
+
+  return (new_vector);
+}
+
+/// Returns the vector indices of the elemnts that contains the given value.
+/// @param find_what String to find in the vector.
+
+template <class T>
+Vector<size_t> Vector<T>::calculate_contains_indices(const std::string& find_what) const
+{
+    const size_t this_size = this->size();
+
+    Vector<size_t> indices;
+
+    for(size_t i = 0; i < this_size; i++)
+    {
+        if((*this)[i].find(find_what) != string::npos)
+        {
+             indices.push_back(i);
+        }
+    }
+
+    return(indices);
+}
+
 
 /// Returns the vector indices at which the vector elements are less than some
 /// given value.
@@ -1305,7 +3575,6 @@ Vector<size_t> Vector<T>::calculate_less_than_indices(const T &value) const {
   return (less_than_indices);
 }
 
-// Vector<size_t> calculate_greater_than_indices(const T&) const method
 
 /// Returns the vector indices at which the vector elements are greater than
 /// some given value.
@@ -1327,8 +3596,42 @@ Vector<size_t> Vector<T>::calculate_greater_than_indices(const T &value) const {
   return (greater_than_indices);
 }
 
-// Vector<size_t> calculate_total_frequencies(const Vector< Histogram<T> >&)
-// const
+
+/// Returns the indices of the elements which are less or equal to a given value.
+/// @param Value Comparison value.
+
+template <class T>
+Vector<size_t> Vector<T>::calculate_less_equal_to_indices(const T &value) const
+{
+  const size_t this_size = this->size();
+
+  Vector<size_t> less_than_indices;
+
+  for (size_t i = 0; i < this_size; i++) {
+    if((*this)[i] <= value) {
+      less_than_indices.push_back(i);
+    }
+  }
+
+  return (less_than_indices);
+}
+
+template <class T>
+Vector<size_t> Vector<T>::calculate_greater_equal_to_indices(const T &value) const {
+
+  const size_t this_size = this->size();
+
+  Vector<size_t> greater_than_indices;
+
+  for (size_t i = 0; i < this_size; i++) {
+    if((*this)[i] >= value) {
+      greater_than_indices.push_back(i);
+    }
+  }
+
+  return (greater_than_indices);
+}
+
 
 /// Returns a vector containing the sum of the frequencies of the bins to which
 /// this vector belongs.
@@ -1348,8 +3651,6 @@ Vector<size_t> Vector<T>::calculate_total_frequencies(
   return (total_frequencies);
 }
 
-// Vector<size_t> calculate_total_frequencies_missing_values(const
-// Vector<size_t> missing_values, const Vector< Histogram<T> >&);
 
 /// Returns a vector containing the sum of the frequencies of the bins to which
 /// this vector
@@ -1359,8 +3660,8 @@ Vector<size_t> Vector<T>::calculate_total_frequencies(
 
 template <class T>
 Vector<size_t> Vector<T>::calculate_total_frequencies_missing_values(
-    const Vector<size_t> instance_missing_values,
-    const Vector< Histogram<T> > &histograms) const {
+    const Vector<size_t>& instance_missing_values,
+    const Vector< Histogram<T> >& histograms) const {
   const size_t histograms_number = histograms.size();
 
   Vector<size_t> total_frequencies;
@@ -1376,7 +3677,6 @@ Vector<size_t> Vector<T>::calculate_total_frequencies_missing_values(
   return (total_frequencies);
 }
 
-// Vector<double> perform_Box_Cox_transformation(const double&) const method
 
 /// Returns vector with the Box-Cox transformation.
 /// @param lambda Exponent of the Box-Cox transformation.
@@ -1391,34 +3691,82 @@ template <class T> Vector<double> Vector<T>::perform_Box_Cox_transformation(cons
     {
         if(lambda == 0)
         {
-            vector_tranformation[i] = std::log((double)(*this)[i]);
+            vector_tranformation[i] = log((double)(*this)[i]);
         }
         else
         {
-            vector_tranformation[i] = (std::pow((double)(*this)[i], lambda) - 1)/lambda;
-
+            vector_tranformation[i] = (pow((double)(*this)[i], lambda) - 1)/lambda;
         }
     }
 
     return vector_tranformation;
 }
 
+
+/// Returns a vector containing the relative frequencies of the elements.
+/// @param total_sum Sum of the elements of the vector
+
+template <class T> Vector<double> Vector<T>::calculate_percentage(const size_t& total_sum) const
+{
+    const size_t this_size = this->size();
+
+    Vector<double> percentage_vector(this_size);
+
+    for(size_t i = 0; i < this_size; i++)
+    {
+        percentage_vector[i] = (double)(*this)[i]/(double)total_sum*100.0;
+    }
+
+    return percentage_vector;
+}
+
+
+template <class T>
+double Vector<T>::calculate_error(const Vector<T>& other_vector) const
+{
+    const size_t this_size = this->size();
+
+    Vector<double> error(this_size,0);
+
+    for(size_t i = 0; i < this_size; i++)
+    {
+        if (other_vector[i] != 0)
+        {
+            error[i] = (double)abs(((*this)[i] - other_vector[i]));
+        }
+    }
+
+    error = error.filter_not_equal_to(0);
+
+    double error_mean = error.calculate_mean();
+
+    return error_mean;
+}
+
+
 // T calculate_minimum(void) const method
 
 /// Returns the smallest element in the vector.
 
 template <class T> T Vector<T>::calculate_minimum(void) const {
-  const size_t this_size = this->size();
 
-  T minimum = std::numeric_limits<T>::max();
+  Vector<T> copy(*this);
 
-  for (size_t i = 0; i < this_size; i++) {
-    if((*this)[i] < minimum) {
-      minimum = (*this)[i];
-    }
-  }
+  typename vector<T>::iterator result = min_element(copy.begin(), copy.end());
 
-  return (minimum);
+  return (*result);
+
+//  const size_t this_size = this->size();
+
+//  T minimum = numeric_limits<T>::max();
+
+//  for (size_t i = 0; i < this_size; i++) {
+//    if((*this)[i] < minimum) {
+//      minimum = (*this)[i];
+//    }
+//  }
+
+//  return (minimum);
 }
 
 // T calculate_maximum(void) const method
@@ -1426,58 +3774,54 @@ template <class T> T Vector<T>::calculate_minimum(void) const {
 /// Returns the largest element in the vector.
 
 template <class T> T Vector<T>::calculate_maximum(void) const {
-  const size_t this_size = this->size();
 
-  T maximum = std::numeric_limits<T>::max();
+    Vector<T> copy(*this);
 
-  if(std::numeric_limits<T>::is_signed) {
-    maximum *= -1;
-  } else {
-    maximum = 0;
-  }
+    typename vector<T>::iterator result = max_element(copy.begin(), copy.end());
 
-  for (size_t i = 0; i < this_size; i++) {
-    if((*this)[i] > maximum) {
-      maximum = (*this)[i];
-    }
-  }
+    return (*result);
 
-  return (maximum);
+//  const size_t this_size = this->size();
+
+//  T maximum;
+
+//  if(numeric_limits<T>::is_signed)
+//  {
+//    maximum = -numeric_limits<T>::max();
+//  }
+//  else
+//  {
+//    maximum = 0;
+//  }
+
+//  for (size_t i = 0; i < this_size; i++)
+//  {
+//    if((*this)[i] > maximum)
+//    {
+//      maximum = (*this)[i];
+//    }
+//  }
+
+//  return (maximum);
 }
 
-// Vector<T> calculate_minimum_maximum(void) const method
 
 /// Returns a vector containing the smallest and the largest elements in the
 /// vector.
 
 template <class T> Vector<T> Vector<T>::calculate_minimum_maximum(void) const {
-  size_t this_size = this->size();
 
-  T minimum = std::numeric_limits<T>::max();
+    Vector<T> copy(*this);
 
-  T maximum;
+    Vector<T> minimum_maximum(2);
 
-  if(std::numeric_limits<T>::is_signed) {
-    maximum = -std::numeric_limits<T>::max();
-  } else {
-    maximum = 0;
-  }
+    typename vector<T>::iterator minimum = min_element(copy.begin(), copy.end());
+    typename vector<T>::iterator maximum = max_element(copy.begin(), copy.end());
 
-  for (size_t i = 0; i < this_size; i++) {
-    if((*this)[i] < minimum) {
-      minimum = (*this)[i];
-    }
+    minimum_maximum[0] = *minimum;
+    minimum_maximum[1] = *maximum;
 
-    if((*this)[i] > maximum) {
-      maximum = (*this)[i];
-    }
-  }
-
-  Vector<T> minimum_maximum(2);
-  minimum_maximum[0] = minimum;
-  minimum_maximum[1] = maximum;
-
-  return (minimum_maximum);
+    return (minimum_maximum);
 }
 
 // T calculate_minimum_missing_values(const Vector<size_t>&) const method
@@ -1489,11 +3833,11 @@ T Vector<T>::calculate_minimum_missing_values(
     const Vector<size_t> &missing_indices) const {
   const size_t this_size = this->size();
 
-  T minimum = std::numeric_limits<T>::max();
+  T minimum = numeric_limits<T>::max();
 
   for (size_t i = 0; i < this_size; i++) {
     if((*this)[i] < minimum &&
-        !missing_indices.contains(i))// && (*this)[i] != -123.456)
+        !missing_indices.contains(i))
     {
       minimum = (*this)[i];
     }
@@ -1513,8 +3857,8 @@ T Vector<T>::calculate_maximum_missing_values(
 
   T maximum;
 
-  if(std::numeric_limits<T>::is_signed) {
-    maximum = -std::numeric_limits<T>::max();
+  if(numeric_limits<T>::is_signed) {
+    maximum = -numeric_limits<T>::max();
   } else {
     maximum = 0;
   }
@@ -1528,8 +3872,6 @@ T Vector<T>::calculate_maximum_missing_values(
   return (maximum);
 }
 
-// Vector<T> calculate_minimum_maximum_missing_values(const Vector<size_t>&)
-// const method
 
 /// Returns a vector containing the smallest and the largest elements in the
 /// vector.
@@ -1539,12 +3881,12 @@ Vector<T> Vector<T>::calculate_minimum_maximum_missing_values(
     const Vector<size_t> &missing_indices) const {
   size_t this_size = this->size();
 
-  T minimum = std::numeric_limits<T>::max();
+  T minimum = numeric_limits<T>::max();
 
   T maximum;
 
-  if(std::numeric_limits<T>::is_signed) {
-    maximum = -std::numeric_limits<T>::max();
+  if(numeric_limits<T>::is_signed) {
+    maximum = -numeric_limits<T>::max();
   } else {
     maximum = 0;
   }
@@ -1569,8 +3911,6 @@ Vector<T> Vector<T>::calculate_minimum_maximum_missing_values(
 }
 
 
-// Vector<T> calculate_explained_variance(void) const method
-
 /// Calculates the explained variance for a given vector (principal components analysis).
 /// This method returns a vector whose size is the same as the size of the given vector.
 
@@ -1582,13 +3922,13 @@ Vector<T> Vector<T>::calculate_explained_variance(void) const
     #ifdef __OPENNN_DEBUG__
 
       if(this_size == 0) {
-        std::ostringstream buffer;
+        ostringstream buffer;
 
         buffer << "OpenNN Exception: Vector Template.\n"
                << "Vector<T> calculate_explained_variance(void) const method.\n"
                << "Size of the vector must be greater than zero.\n";
 
-        throw std::logic_error(buffer.str());
+        throw logic_error(buffer.str());
       }
 
     #endif
@@ -1598,13 +3938,13 @@ Vector<T> Vector<T>::calculate_explained_variance(void) const
     #ifdef __OPENNN_DEBUG__
 
       if(this_sum == 0) {
-        std::ostringstream buffer;
+        ostringstream buffer;
 
         buffer << "OpenNN Exception: Vector Template.\n"
                << "Vector<T> calculate_explained_variance(void) const method.\n"
                << "Sum of the members of the vector must be greater than zero.\n";
 
-        throw std::logic_error(buffer.str());
+        throw logic_error(buffer.str());
       }
 
     #endif
@@ -1612,13 +3952,13 @@ Vector<T> Vector<T>::calculate_explained_variance(void) const
     #ifdef __OPENNN_DEBUG__
 
       if(this_sum < 0) {
-        std::ostringstream buffer;
+        ostringstream buffer;
 
         buffer << "OpenNN Exception: Vector Template.\n"
                << "Vector<T> calculate_explained_variance(void) const method.\n"
                << "Sum of the members of the vector cannot be negative.\n";
 
-        throw std::logic_error(buffer.str());
+        throw logic_error(buffer.str());
       }
 
     #endif
@@ -1639,13 +3979,13 @@ Vector<T> Vector<T>::calculate_explained_variance(void) const
     #ifdef __OPENNN_DEBUG__
 
       if(explained_variance.calculate_sum() != 1.0) {
-        std::ostringstream buffer;
+        ostringstream buffer;
 
         buffer << "OpenNN Exception: Vector Template.\n"
                << "Vector<T> calculate_explained_variance(void) const method.\n"
                << "Sum of explained variance must be 1.\n";
 
-        throw std::logic_error(buffer.str());
+        throw logic_error(buffer.str());
       }
 
     #endif
@@ -1670,13 +4010,13 @@ Histogram<T> Vector<T>::calculate_histogram(const size_t &bins_number) const {
 #ifdef __OPENNN_DEBUG__
 
   if(bins_number < 1) {
-    std::ostringstream buffer;
+    ostringstream buffer;
 
     buffer << "OpenNN Exception: Vector Template.\n"
            << "Histogram<T> calculate_histogram(const size_t&) const method.\n"
            << "Number of bins is less than one.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
 #endif
@@ -1783,7 +4123,60 @@ Histogram<T> Vector<T>::calculate_histogram_binary(void) const {
 }
 
 
-// Histogram<T> calculate_histogram_missing_values(const size_t&) const method
+// Histogram<T> calculate_histogram_integers(const size_t&) const method
+
+/// This method bins the elements of the vector into a given number of equally
+/// spaced containers.
+/// It returns a vector of two vectors.
+/// The size of both subvectors is the number of bins.
+/// The first subvector contains the frequency of the bins.
+/// The second subvector contains the center of the bins.
+
+template <class T>
+Histogram<T> Vector<T>::calculate_histogram_integers(const size_t& bins_number) const {
+    // Control sentence (if debug)
+
+    #ifdef __OPENNN_DEBUG__
+
+      if(bins_number < 1) {
+        ostringstream buffer;
+
+        buffer << "OpenNN Exception: Vector Template.\n"
+               << "Histogram<T> calculate_histogram(const size_t&) const method.\n"
+               << "Number of bins is less than one.\n";
+
+        throw logic_error(buffer.str());
+      }
+
+    #endif
+
+    Vector<T> centers = this->get_integer_elements(bins_number);
+    const size_t centers_number = centers.size();
+
+    sort(centers.begin(), centers.end(), less<T>());
+
+    Vector<T> minimums(centers_number);
+    Vector<T> maximums(centers_number);
+    Vector<size_t> frequencies(centers_number);
+
+    for(size_t i = 0; i < centers_number; i++)
+    {
+        minimums[i] = centers[i];
+        maximums[i] = centers[i];
+        frequencies[i] = this->count_equal_to(centers[i]);
+    }
+
+    Histogram<T> histogram(centers_number);
+    histogram.centers = centers;
+    histogram.minimums = minimums;
+    histogram.maximums = maximums;
+    histogram.frequencies = frequencies;
+
+    return histogram;
+}
+
+
+// Histogram<T> calculate_histogram_missing_values(cons Vectro<size_t>&, const size_t&) const method
 
 /// This method bins the elements of the vector into a given number of equally
 /// spaced containers.
@@ -1800,14 +4193,14 @@ Histogram<T> Vector<T>::calculate_histogram_missing_values(
 #ifdef __OPENNN_DEBUG__
 
   if(bins_number < 1) {
-    std::ostringstream buffer;
+    ostringstream buffer;
 
     buffer << "OpenNN Exception: Vector Template.\n"
            << "Histogram<T> calculate_histogram_missing_values(const "
               "Vector<size_t>&, const size_t&) const method.\n"
            << "Number of bins is less than one.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
 #endif
@@ -1866,24 +4259,165 @@ Histogram<T> Vector<T>::calculate_histogram_missing_values(
   return (histogram);
 }
 
+
+// Histogram<T> calculate_histogram_binary(void) const method
+
+/// This method bins the elements of the vector into a given number of equally
+/// spaced containers.
+/// It returns a vector of two vectors.
+/// The size of both subvectors is the number of bins.
+/// The first subvector contains the frequency of the bins.
+/// The second subvector contains the center of the bins.
+/// @param missing_indices Indices of the instances with missing values.
+
+template <class T>
+Histogram<T> Vector<T>::calculate_histogram_binary_missing_values(const Vector<size_t>& missing_indices) const {
+// Control sentence (if debug)
+
+  Vector<T> minimums(2);
+  Vector<T> maximums(2);
+
+  Vector<T> centers(2);
+  Vector<size_t> frequencies(2, 0);
+
+  minimums[0] = 0.0;
+  maximums[0] = 0.0;
+  centers[0] = 0.0;
+
+  minimums[1] = 1.0;
+  maximums[1] = 1.0;
+  centers[1] = 1.0;
+
+  // Calculate bins frequency
+
+  const size_t this_size = this->size();
+
+  for (size_t i = 0; i < this_size; i++) {
+    if(!missing_indices.contains(i)) {
+    for (size_t j = 0; j < 2; j++) {
+      if((*this)[i] == minimums[j]) {
+        frequencies[j]++;
+      }
+    }
+    }
+  }
+
+  Histogram<T> histogram(2);
+  histogram.centers = centers;
+  histogram.minimums = minimums;
+  histogram.maximums = maximums;
+  histogram.frequencies = frequencies;
+
+  return (histogram);
+}
+
+
+// Histogram<T> calculate_histogram_integers(void) const method
+
+/// This method bins the elements of the vector into a given number of equally
+/// spaced containers.
+/// It returns a vector of two vectors.
+/// The size of both subvectors is the number of bins.
+/// The first subvector contains the frequency of the bins.
+/// The second subvector contains the center of the bins.
+/// @param missing_indices Indices of the instances with missing values.
+/// @param bins_number Number of bins of the histogram.
+
+template <class T>
+Histogram<T> Vector<T>::calculate_histogram_integers_missing_values(const Vector<size_t>& missing_indices, const size_t& bins_number) const {
+    // Control sentence (if debug)
+
+    #ifdef __OPENNN_DEBUG__
+
+      if(bins_number < 1) {
+        ostringstream buffer;
+
+        buffer << "OpenNN Exception: Vector Template.\n"
+               << "Histogram<T> calculate_histogram(const size_t&) const method.\n"
+               << "Number of bins is less than one.\n";
+
+        throw logic_error(buffer.str());
+      }
+
+    #endif
+
+    Vector<T> centers = this->get_integer_elements_missing_values(missing_indices, bins_number);
+    const size_t centers_number = centers.size();
+
+    sort(centers.begin(), centers.end(), less<T>());
+
+    Vector<T> minimums(centers_number);
+    Vector<T> maximums(centers_number);
+    Vector<size_t> frequencies(centers_number);
+
+    for(size_t i = 0; i < centers_number; i++)
+    {
+        minimums[i] = centers[i];
+        maximums[i] = centers[i];
+        frequencies[i] = this->count_equal_to(centers[i]);
+    }
+
+    Histogram<T> histogram(centers_number);
+    histogram.centers = centers;
+    histogram.minimums = minimums;
+    histogram.maximums = maximums;
+    histogram.frequencies = frequencies;
+
+    return histogram;
+}
+
+
+/// Finds the first element in the vector with a given value, and returns its index.
+/// @param value Value to be found.
+
+template <class T>
+size_t Vector<T>::get_first_index(const T& value) const
+{
+    const size_t this_size = this->size();
+
+    for(size_t i = 0; i < this_size; i++)
+    {
+        if((*this)[i] == value)
+        {
+            return(i);
+        }
+    }
+
+    ostringstream buffer;
+
+    buffer << "OpenNN Exception: Vector Template.\n"
+           << "size_t get_first_index(const T&) const.\n"
+           << "Value not found in vector.\n";
+
+    throw logic_error(buffer.str());
+
+}
+
 // size_t calculate_minimal_index(void) const method
 
 /// Returns the index of the smallest element in the vector.
 
-template <class T> size_t Vector<T>::calculate_minimal_index(void) const {
-  const size_t this_size = this->size();
+template <class T> size_t Vector<T>::calculate_minimal_index(void) const
+{
+    Vector<T> copy(*this);
 
-  T minimum = (*this)[0];
-  size_t minimal_index = 0;
+    typename vector<T>::iterator result = min_element(copy.begin(), copy.end());
 
-  for (size_t i = 1; i < this_size; i++) {
-    if((*this)[i] < minimum) {
-      minimum = (*this)[i];
-      minimal_index = i;
-    }
-  }
+    return (distance(copy.begin(), result));
 
-  return (minimal_index);
+//  const size_t this_size = this->size();
+
+//  T minimum = (*this)[0];
+//  size_t minimal_index = 0;
+
+//  for (size_t i = 1; i < this_size; i++) {
+//    if((*this)[i] < minimum) {
+//      minimum = (*this)[i];
+//      minimal_index = i;
+//    }
+//  }
+
+//  return (minimal_index);
 }
 
 // size_t calculate_maximal_index(void) const method
@@ -1891,22 +4425,27 @@ template <class T> size_t Vector<T>::calculate_minimal_index(void) const {
 /// Returns the index of the largest element in the vector.
 
 template <class T> size_t Vector<T>::calculate_maximal_index(void) const {
-  const size_t this_size = this->size();
+    Vector<T> copy(*this);
 
-  T maximum = (*this)[0];
-  size_t maximal_index = 0;
+    typename vector<T>::iterator result = max_element(copy.begin(), copy.end());
 
-  for (size_t i = 1; i < this_size; i++) {
-    if((*this)[i] > maximum) {
-      maximum = (*this)[i];
-      maximal_index = i;
-    }
-  }
+    return ( distance(copy.begin(), result));
 
-  return (maximal_index);
+//  const size_t this_size = this->size();
+
+//  T maximum = (*this)[0];
+//  size_t maximal_index = 0;
+
+//  for (size_t i = 1; i < this_size; i++) {
+//    if((*this)[i] > maximum) {
+//      maximum = (*this)[i];
+//      maximal_index = i;
+//    }
+//  }
+
+//  return (maximal_index);
 }
 
-// Vector<size_t> calculate_minimal_indices(const size_t&) const method
 
 /// Returns the indices of the smallest elements in the vector.
 /// @param number Number of minimal indices to be computed.
@@ -1931,7 +4470,6 @@ Vector<T>::calculate_minimal_indices(const size_t &number) const {
   return (minimal_indices);
 }
 
-// Vector<size_t> calculate_maximal_indices(const size_t&) const method
 
 /// Returns the indices of the largest elements in the vector.
 /// @param number Number of maximal indices to be computed.
@@ -1956,7 +4494,6 @@ Vector<T>::calculate_maximal_indices(const size_t &number) const {
   return (maximal_indices);
 }
 
-// Vector<size_t> calculate_minimal_maximal_index(void) const method
 
 /// Returns a vector with the indices of the smallest and the largest elements
 /// in the vector.
@@ -1989,7 +4526,6 @@ Vector<size_t> Vector<T>::calculate_minimal_maximal_index(void) const {
   return (minimal_maximal_index);
 }
 
-// Vector<double> calculate_pow(const T&) const method
 
 /// Returns a vector with the elements of this vector raised to a power
 /// exponent.
@@ -2007,7 +4543,6 @@ template <class T> Vector<T> Vector<T>::calculate_pow(const T &exponent) const {
   return (power);
 }
 
-// Vector<double> calculate_competitive(void) const method
 
 /// Returns the competitive vector of this vector,
 /// whose elements are one the bigest element of this vector, and zero for the
@@ -2025,7 +4560,6 @@ template <class T> Vector<T> Vector<T>::calculate_competitive(void) const {
   return (competitive);
 }
 
-// Vector<T> calculate_softmax(void) const method
 
 /// Returns the softmax vector of this vector,
 /// whose elements sum one, and can be interpreted as probabilities.
@@ -2070,7 +4604,6 @@ template <class T> Matrix<T> Vector<T>::calculate_softmax_Jacobian(void) const {
   return (softmax_Jacobian);
 }
 
-// Vector<bool> calculate_binary(void) const method
 
 /// This method converts the values of the vector to be binary.
 /// The threshold value used is 0.5.
@@ -2091,7 +4624,6 @@ template <class T> Vector<bool> Vector<T>::calculate_binary(void) const {
   return (binary);
 }
 
-// Vector<T> calculate_cumulative(void) const method
 
 /// Return the cumulative vector of this vector,
 /// where each element is summed up with all the previous ones.
@@ -2128,37 +4660,37 @@ size_t Vector<T>::calculate_cumulative_index(const T &value) const {
 #ifdef __OPENNN_DEBUG__
 
   if(this_size == 0) {
-    std::ostringstream buffer;
+    ostringstream buffer;
 
     buffer << "OpenNN Exception: Vector Template.\n"
            << "size_t calculate_cumulative_index(const T&) const.\n"
            << "Size must be greater than zero.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
   T cumulative_value = (*this)[this_size - 1];
 
   if(value > cumulative_value) {
-    std::ostringstream buffer;
+    ostringstream buffer;
 
     buffer << "OpenNN Exception: Vector Template.\n"
            << "size_t calculate_cumulative_index(const T&) const.\n"
            << "Value (" << value << ") must be less than cumulative value ("
            << cumulative_value << ").\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
   for (size_t i = 1; i < this_size; i++) {
     if((*this)[i] < (*this)[i - 1]) {
-      std::ostringstream buffer;
+      ostringstream buffer;
 
       buffer << "OpenNN Exception: Vector Template.\n"
              << "int calculate_cumulative_index(const T&) const.\n"
              << "Vector elements must be crescent.\n";
 
-      throw std::logic_error(buffer.str());
+      throw logic_error(buffer.str());
     }
   }
 
@@ -2262,11 +4794,149 @@ template <class T> T Vector<T>::calculate_product(void) const {
   return (product);
 }
 
+
+template <class T>
+Vector<T> Vector<T>::calculate_moving_average_cyclic(const T& parameter) const
+{
+    const size_t this_size = this->size();
+
+    Vector<T> moving_average(this_size);
+
+    moving_average[0] = ((*this)[0]+(parameter*((*this)[1]+(*this)[this_size-1])))/(1+(2*parameter));
+
+    moving_average[this_size-1] = ((*this)[this_size-1]+(parameter*((*this)[this_size-2]+(*this)[0])))/(1+(2*parameter));
+
+    for (size_t i = 1; i < this->size()-1; i++)
+    {
+        moving_average[i] = ((*this)[i]+(parameter*((*this)[i-1]+(*this)[i+1])))/(1.0+2.0*parameter);
+    }
+
+    return (moving_average);
+}
+
+
+template <class T>
+Vector<T> Vector<T>::calculate_moving_average(const T& parameter) const
+{
+    const size_t this_size = this->size();
+
+    Vector<T> moving_average(this_size);
+
+    moving_average[0] = ((*this)[0]+(parameter*(*this)[1]))/(1.0+parameter);
+
+    moving_average[this_size-1] = ((*this)[this_size-1]+(parameter*(*this)[this_size-2]))/(1.0+parameter);
+
+    for (size_t i = 1; i < this_size-1; i++)
+    {
+        moving_average[i] = ((*this)[i]+(parameter*((*this)[i-1]+(*this)[i+1])))/(1.0+2.0*parameter);
+    }
+
+    return (moving_average);
+}
+
+
+template <class T>
+Vector<double> Vector<T>::calculate_simple_moving_average(const size_t& period) const
+{
+    // Control sentence (if debug)
+
+    #ifdef __OPENNN_DEBUG__
+
+      if(period < 1)
+      {
+        ostringstream buffer;
+
+        buffer << "OpenNN Exception: Vector Template.\n"
+               << "double calculate_simple_moving_average(const size_t&) const method.\n"
+               << "Period must be equal or greater than zero.\n";
+
+        throw logic_error(buffer.str());
+      }
+
+    #endif
+
+    const size_t this_size = this->size();
+
+    Vector<double> simple_moving_average(this_size, 0.0);
+
+    #pragma omp parallel for
+
+    for(int i = 0; i < this_size; i++)
+    {
+        const size_t begin = i < period ? 0 : i - period + 1;
+        const size_t end = i;
+
+        simple_moving_average[i] = calculate_mean(begin, end);
+    }
+
+    return simple_moving_average;
+}
+
+
+template <class T>
+Vector<double> Vector<T>::calculate_exponential_moving_average(const size_t& period) const
+{
+    const size_t size = this->size();
+
+    Vector<double> exponential_moving_average(size);
+
+    exponential_moving_average[0] = (*this)[0];
+
+    const double multiplier = 2.0 / double(period + 1.0);
+
+    for(size_t i = 1; i < size; i++)
+    {
+        exponential_moving_average[i] = (*this)[i] * multiplier + exponential_moving_average[i-1] * (1.0 - multiplier);
+    }
+
+    return exponential_moving_average;
+}
+
+
+template <class T>
+double Vector<T>::calculate_last_exponential_moving_average(const size_t& period) const
+{
+    const Vector<double> exponential_moving_average = calculate_exponential_moving_average(period);
+
+    return exponential_moving_average.get_last();
+}
+
+
+template <class T>
+Vector<double> Vector<T>::calculate_exponential_moving_average_with_initial_average(const size_t& period) const
+{
+    const size_t size = this->size();
+
+    Vector<double> exponential_moving_average(size);
+
+    double initial_average = 0.0;
+
+    for(size_t i = 0; i < period; i++)
+    {
+        initial_average += (*this)[i];
+    }
+
+    initial_average /= period;
+
+    exponential_moving_average[0] = initial_average;
+
+    const double multiplier = 2 / double(period + 1.0);
+
+    for(size_t i = 1; i < size; i++)
+    {
+        exponential_moving_average[i] = (*this)[i] * multiplier + exponential_moving_average[i-1] * (1 - multiplier);
+    }
+
+    return(exponential_moving_average);
+}
+
+
 // double calculate_mean(void) const method
 
 /// Returns the mean of the elements in the vector.
 
-template <class T> double Vector<T>::calculate_mean(void) const {
+template <class T> double Vector<T>::calculate_mean(void) const
+{
   const size_t this_size = this->size();
 
 // Control sentence (if debug)
@@ -2274,13 +4944,13 @@ template <class T> double Vector<T>::calculate_mean(void) const {
 #ifdef __OPENNN_DEBUG__
 
   if(this_size == 0) {
-    std::ostringstream buffer;
+    ostringstream buffer;
 
     buffer << "OpenNN Exception: Vector Template.\n"
            << "double calculate_mean(void) const method.\n"
            << "Size must be greater than zero.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
 #endif
@@ -2292,7 +4962,207 @@ template <class T> double Vector<T>::calculate_mean(void) const {
   return (mean);
 }
 
-// double calculate_variance(void) method
+
+/// Returns the mean of the subvector defined by a start and end elements.
+/// @param begin Start element.
+/// @param end End element.
+
+template <class T>
+double Vector<T>::calculate_mean(const size_t& begin, const size_t& end) const
+{
+   // Control sentence (if debug)
+
+  #ifdef __OPENNN_DEBUG__
+
+    if(begin > end) {
+      ostringstream buffer;
+
+      buffer << "OpenNN Exception: Vector Template.\n"
+             << "double calculate_mean(const size_t&, const size_t&) const method.\n"
+             << "Begin must be less or equal than end.\n";
+
+      throw logic_error(buffer.str());
+    }
+
+  #endif
+
+  if(end == begin) return (*this)[begin];
+
+  double sum = 0.0;
+
+  for(size_t i = begin; i <= end; i++)
+  {
+      sum += (*this)[i];
+  }
+
+  return (sum / (double)(end-begin+1));
+}
+
+
+/// Returns the linear slope of this vector.
+
+template <class T>
+double Vector<T>::calculate_linear_trend(void) const
+{
+    const size_t this_size = this->size();
+
+    const Vector<double> independent_variable(0.0,1.0,(double)(this_size-1));
+
+    const LinearRegressionParameters<T> linear_regression_parameters = calculate_linear_regression_parameters(independent_variable);
+
+    return(linear_regression_parameters.slope);
+}
+
+
+/// Returns the linear slope of a subvector defined by two elements.
+/// @param start First element.
+/// @param end Last element.
+
+template <class T>
+double Vector<T>::calculate_linear_trend(const size_t& start, const size_t& end) const
+{
+    const Vector<size_t> indices(start, 1, end);
+
+    const Vector<double> dependent_variable = get_subvector(indices);
+
+    return(dependent_variable.calculate_linear_trend());
+}
+
+
+template <class T>
+double Vector<T>::calculate_percentage_of_variation(void) const
+{
+    const double percentage_of_variation = ((*this).get_last()-(*this).get_first())*100.0/(*this).get_first();
+
+    return percentage_of_variation;
+}
+
+
+// @todo
+
+template <class T>
+Vector<double> Vector<T>::calculate_percentage_of_variation(const size_t& period) const
+{
+    const size_t this_size = this->size();
+
+#ifdef __OPENNN_DEBUG__
+
+  if(this_size < period) {
+    ostringstream buffer;
+
+    buffer << "OpenNN Exception: Vector Template.\n"
+           << "Vector<double> calculate_percentage_of_variation(const size_t&) const method.\n"
+           << "Size must be greater than period.\n";
+
+    throw logic_error(buffer.str());
+  }
+
+#endif
+
+    Vector<double> percentage_of_variation(this_size, 0.0);
+
+    if((*this) == 0.0)
+    {
+        return percentage_of_variation;
+    }
+
+    for(int i = 0; i < this_size; i++)
+    {
+        const size_t begin = i < period ? 0 : i - period + 1;
+        const size_t end = i;
+
+        if((*this)[begin] != 0.0)
+        {
+            percentage_of_variation[i] = ((*this)[end] - (*this)[begin]) * 100.0 / (*this)[begin];
+        }
+        else
+        {
+            percentage_of_variation[i] = percentage_of_variation[i-1];
+        }
+    }
+
+    return percentage_of_variation;
+}
+
+
+template <class T>
+double Vector<T>::calculate_last_percentage_of_variation(const size_t& period) const
+{
+    const Vector<double> percentage_of_variation = calculate_percentage_of_variation(period);
+
+    return percentage_of_variation.get_last();
+}
+
+
+/// Returns the mode of the vector, i.e., the element with most occurrences.
+
+template <class T> T Vector<T>::calculate_mode(void) const
+{
+// Control sentence (if debug)
+
+#ifdef __OPENNN_DEBUG__
+    const size_t this_size = this->size();
+
+  if(this_size == 0) {
+    ostringstream buffer;
+
+    buffer << "OpenNN Exception: Vector Template.\n"
+           << "double calculate_mode(void) const method.\n"
+           << "Size must be greater than zero.\n";
+
+    throw logic_error(buffer.str());
+  }
+
+#endif
+
+  const Vector<T> unique = get_unique_elements();
+
+  const size_t maximal_index = count_unique().calculate_maximal_index();
+
+  return (unique[maximal_index]);
+}
+
+
+/// Returns the mode of the vector, when it has missing values.
+/// @param missing_indices Indices of the missing values in the vector.
+
+template <class T> T Vector<T>::calculate_mode_missing_values(const Vector<size_t>& missing_indices) const {
+  const size_t this_size = this->size();
+
+// Control sentence (if debug)
+
+#ifdef __OPENNN_DEBUG__
+
+  if(this_size == 0) {
+    ostringstream buffer;
+
+    buffer << "OpenNN Exception: Vector Template.\n"
+           << "double calculate_mode_missing_values(const Vector<size_t>&) const method.\n"
+           << "Size must be greater than zero.\n";
+
+    throw logic_error(buffer.str());
+  }
+
+#endif
+
+  const size_t missing_indices_size = missing_indices.size();
+
+  Vector<T> new_vector(this_size - missing_indices_size);
+
+  size_t count = 0;
+
+  for(size_t i = 0; i < this_size; i++)
+  {
+      if(!missing_indices.contains(i))
+      {
+          new_vector[count] = (*this)[i];
+          count++;
+      }
+  }
+
+  return(new_vector.calculate_mode());
+}
+
 
 /// Returns the variance of the elements in the vector.
 
@@ -2304,33 +5174,42 @@ template <class T> double Vector<T>::calculate_variance(void) const {
 #ifdef __OPENNN_DEBUG__
 
   if(this_size == 0) {
-    std::ostringstream buffer;
+    ostringstream buffer;
 
     buffer << "OpenNN Exception: Vector Template.\n"
            << "double calculate_variance(void) const method.\n"
            << "Size must be greater than zero.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
 #endif
 
-  if(this_size == 1) {
+  if(this_size == 1)
+  {
     return (0.0);
   }
 
   double sum = 0.0;
   double squared_sum = 0.0;
 
-  for (size_t i = 0; i < this_size; i++) {
+  for (size_t i = 0; i < this_size; i++)
+  {
     sum += (*this)[i];
     squared_sum += (*this)[i] * (*this)[i];
   }
 
-  const double numerator = squared_sum - (sum * sum) / this_size;
+  const double numerator = squared_sum - (sum * sum) / (double)this_size;
   const double denominator = this_size - 1.0;
 
-  return (numerator / denominator);
+  if(denominator == 0.0)
+  {
+      return 0.0;
+  }
+  else
+  {
+      return (numerator / denominator);
+  }
 }
 
 
@@ -2348,13 +5227,13 @@ double Vector<T>::calculate_covariance(const Vector<double>& other_vector) const
    #ifdef __OPENNN_DEBUG__
 
      if(this_size == 0) {
-       std::ostringstream buffer;
+       ostringstream buffer;
 
        buffer << "OpenNN Exception: Vector Template.\n"
               << "double calculate_covariance(const Vector<double>&) const method.\n"
               << "Size must be greater than zero.\n";
 
-       throw std::logic_error(buffer.str());
+       throw logic_error(buffer.str());
      }
 
    #endif
@@ -2364,13 +5243,13 @@ double Vector<T>::calculate_covariance(const Vector<double>& other_vector) const
     #ifdef __OPENNN_DEBUG__
 
          if(this_size != other_vector.size()) {
-             std::ostringstream buffer;
+             ostringstream buffer;
 
              buffer << "OpenNN Exception: Vector Template.\n"
                     << "double calculate_covariance(const Vector<double>&) const method.\n"
                     << "Size of this vectro must be equal to size of other vector.\n";
 
-             throw std::logic_error(buffer.str());
+             throw logic_error(buffer.str());
          }
 
     #endif
@@ -2397,9 +5276,11 @@ double Vector<T>::calculate_covariance(const Vector<double>& other_vector) const
 
 // double calculate_standard_deviation(void) const method
 
-/// Returns the variance of the elements in the vector.
+/// Returns the standard deviation of the elements in the vector.
 
-template <class T> double Vector<T>::calculate_standard_deviation(void) const {
+template <class T>
+double Vector<T>::calculate_standard_deviation(void) const
+{
 // Control sentence (if debug)
 
 #ifdef __OPENNN_DEBUG__
@@ -2407,13 +5288,13 @@ template <class T> double Vector<T>::calculate_standard_deviation(void) const {
   const size_t this_size = this->size();
 
   if(this_size == 0) {
-    std::ostringstream buffer;
+    ostringstream buffer;
 
     buffer << "OpenNN Exception: Vector Template.\n"
            << "double calculate_standard_deviation(void) const method.\n"
            << "Size must be greater than zero.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
 #endif
@@ -2421,30 +5302,66 @@ template <class T> double Vector<T>::calculate_standard_deviation(void) const {
   return (sqrt(calculate_variance()));
 }
 
-// double calculate_asymmetry(void) const method
+
+template <class T>
+Vector<double> Vector<T>::calculate_standard_deviation(const size_t& period) const
+{
+  const size_t this_size = this->size();
+
+  Vector<double> standard_deviation(this_size, 0.0);
+
+  double mean = 0.0;
+  double sum = 0.0;
+
+  for(size_t i = 0; i < this_size; i++)
+  {
+      const size_t begin = i < period ? 0 : i - period + 1;
+      const size_t end = i;
+
+      mean = calculate_mean(begin,end);
+
+      for(size_t j = begin; j < end+1; j++)
+      {
+          sum += ((*this)[j] - mean) * ((*this)[j] - mean);
+      }
+
+      standard_deviation[i] = sqrt(sum / double(period));
+
+      mean = 0.0;
+      sum = 0.0;
+  }
+
+  standard_deviation[0] = standard_deviation[1];
+
+  return(standard_deviation);
+}
+
 
 /// Returns the asymmetry of the elements in the vector
 
-template <class T> double Vector<T>::calculate_asymmetry(void) const {
+template <class T> double Vector<T>::calculate_asymmetry(void) const
+{
   const size_t this_size = this->size();
 
 // Control sentence (if debug)
 
 #ifdef __OPENNN_DEBUG__
 
-  if(this_size == 0) {
-    std::ostringstream buffer;
+  if(this_size == 0)
+  {
+    ostringstream buffer;
 
     buffer << "OpenNN Exception: Vector Template.\n"
            << "double calculate_asymmetry(void) const method.\n"
            << "Size must be greater than zero.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
 #endif
 
-  if(this_size == 1) {
+  if(this_size == 1)
+  {
     return 0.0;
   }
 
@@ -2459,14 +5376,12 @@ template <class T> double Vector<T>::calculate_asymmetry(void) const {
     sum += ((*this)[i] - mean)*((*this)[i] - mean)*((*this)[i] - mean);
   }
 
-  const double numerator = sum / this_size;
-  const double denominator =
-      standard_deviation * standard_deviation * standard_deviation;
+  const double numerator = sum / (double)this_size;
+  const double denominator = standard_deviation * standard_deviation * standard_deviation;
 
   return (numerator / denominator);
 }
 
-// double calculate_kurtosis(void) const method
 
 /// Returns the kurtosis value of the elements in the vector.
 
@@ -2478,13 +5393,13 @@ template <class T> double Vector<T>::calculate_kurtosis(void) const {
 #ifdef __OPENNN_DEBUG__
 
   if(this_size == 0) {
-    std::ostringstream buffer;
+    ostringstream buffer;
 
     buffer << "OpenNN Exception: Vector Template.\n"
            << "double calculate_kurtosis(void) const method.\n"
            << "Size must be greater than zero.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
 #endif
@@ -2504,13 +5419,12 @@ template <class T> double Vector<T>::calculate_kurtosis(void) const {
     sum += ((*this)[i] - mean)*((*this)[i] - mean)*((*this)[i] - mean)*((*this)[i] - mean);
   }
 
-  const double numerator = sum/this_size;
+  const double numerator = sum/(double)this_size;
   const double denominator = standard_deviation*standard_deviation*standard_deviation*standard_deviation;
 
   return ((numerator/denominator)-3.0);
 }
 
-// Vector<double> calculate_mean_standard_deviation(void) const method
 
 /// Returns the mean and the standard deviation of the elements in the vector.
 
@@ -2523,13 +5437,13 @@ Vector<double> Vector<T>::calculate_mean_standard_deviation(void) const {
   const size_t this_size = this->size();
 
   if(this_size == 0) {
-    std::ostringstream buffer;
+    ostringstream buffer;
 
     buffer << "OpenNN Exception: Vector Template.\n"
            << "double calculate_mean_standard_deviation(void).\n"
            << "Size must be greater than zero.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
 #endif
@@ -2553,54 +5467,112 @@ template <class T> double Vector<T>::calculate_median(void) const {
 
   Vector<T> sorted_vector(*this);
 
-  std::sort(sorted_vector.begin(), sorted_vector.end(), std::less<double>());
+  sort(sorted_vector.begin(), sorted_vector.end(), less<double>());
 
   size_t median_index;
 
   if(this_size % 2 == 0) {
     median_index = (size_t)(this_size / 2);
 
-    return ((sorted_vector[median_index] + sorted_vector[median_index]) / 2.0);
+    return ((sorted_vector[median_index-1] + sorted_vector[median_index]) / 2.0);
   } else {
     median_index = (size_t)(this_size / 2);
 
-    return (sorted_vector[median_index + 1]);
+    return (sorted_vector[median_index]);
   }
 }
 
-// Vector<double> calculate_quartiles(void) const
 
 /// Returns the quarters of the elements in the vector.
 
 template <class T> Vector<double> Vector<T>::calculate_quartiles(void) const {
   const size_t this_size = this->size();
-
   Vector<T> sorted_vector(*this);
 
-  std::sort(sorted_vector.begin(), sorted_vector.end(), std::less<double>());
+  sort(sorted_vector.begin(), sorted_vector.end(), less<double>());
 
-  Vector<double> quartiles(4);
+  Vector<double> quartiles(3);
 
-  if(this_size % 2 == 0) {
-    quartiles[0] = (sorted_vector[this_size / 4] + sorted_vector[this_size / 4 + 1]) / 2;
-    quartiles[1] = (sorted_vector[this_size * 2 / 4] +
-                   sorted_vector[this_size * 2 / 4 + 1]) /
-                  2;
-    quartiles[2] = (sorted_vector[this_size * 3 / 4] +
-                   sorted_vector[this_size * 3 / 4 + 1]) /
-                  2;
-    quartiles[3] = calculate_maximum();
-  } else {
-    quartiles[0] = sorted_vector[this_size / 4 /*+ 1*/];
-    quartiles[1] = sorted_vector[this_size * 2 / 4 /*+ 1*/];
-    quartiles[2] = sorted_vector[this_size * 3 / 4 /*+ 1*/];
-    quartiles[3] = calculate_maximum();
+  if(this_size == 1)
+  {
+      quartiles[0] = sorted_vector[0];
+      quartiles[1] = sorted_vector[0];
+      quartiles[2] = sorted_vector[0];
+  }
+  else if(this_size == 2)
+  {
+      quartiles[0] = (sorted_vector[0]+sorted_vector[1])/4;
+      quartiles[1] = (sorted_vector[0]+sorted_vector[1])/2;
+      quartiles[2] = (sorted_vector[0]+sorted_vector[1])*3/4;
+  }
+  else if(this_size == 3)
+  {
+      quartiles[0] = (sorted_vector[0]+sorted_vector[1])/2;
+      quartiles[1] = sorted_vector[1];
+      quartiles[2] = (sorted_vector[2]+sorted_vector[1])/2;
+  }
+  else if(this_size % 2 == 0)
+  {
+//    quartiles[0] = (sorted_vector[this_size / 4] + sorted_vector[this_size / 4 + 1]) / 2;
+//    quartiles[1] = (sorted_vector[this_size * 2 / 4] + sorted_vector[this_size * 2 / 4 + 1]) / 2;
+//    quartiles[2] = (sorted_vector[this_size * 3 / 4] + sorted_vector[this_size * 3 / 4 + 1]) / 2;
+    quartiles[0] = sorted_vector.get_first(this_size/2).calculate_median();
+    quartiles[1] = sorted_vector.calculate_median();
+    quartiles[2] = sorted_vector.get_last(this_size/2).calculate_median();
+  }
+  else
+  {
+//    quartiles[0] = sorted_vector[this_size / 4];
+//    quartiles[1] = sorted_vector[this_size * 2 / 4];
+//    quartiles[2] = sorted_vector[this_size * 3 / 4];
+    quartiles[0] = sorted_vector[int(this_size/4)];
+    quartiles[1] = sorted_vector[int(this_size/2)];
+    quartiles[2] = sorted_vector[int(this_size*3/4)];
   }
 
   return (quartiles);
 }
 
-// Vector<double> calculate_quartiles_missing_values(const Vector<size_t>&) const
+
+template <class T>
+Vector<double> Vector<T>::calculate_percentiles() const
+{
+  const size_t this_size = this->size();
+
+  const Vector<size_t> sorted_vector = this->sort_ascending();
+
+  Vector<double> percentiles(10);
+
+  if(this_size % 2 == 0)
+  {
+    percentiles[0] = (sorted_vector[this_size / 10] + sorted_vector[this_size / 10 + 1]) / 2;
+    percentiles[1] = (sorted_vector[this_size * 2 / 10] + sorted_vector[this_size * 2 / 10 + 1]) / 2;
+    percentiles[2] = (sorted_vector[this_size * 3 / 10] + sorted_vector[this_size * 3 / 10 + 1]) / 2;
+    percentiles[3] = (sorted_vector[this_size * 4 / 10] + sorted_vector[this_size * 4 / 10 + 1]) / 2;
+    percentiles[4] = (sorted_vector[this_size * 5 / 10] + sorted_vector[this_size * 5 / 10 + 1]) / 2;
+    percentiles[5] = (sorted_vector[this_size * 6 / 10] + sorted_vector[this_size * 6 / 10 + 1]) / 2;
+    percentiles[6] = (sorted_vector[this_size * 7 / 10] + sorted_vector[this_size * 7 / 10 + 1]) / 2;
+    percentiles[7] = (sorted_vector[this_size * 8 / 10] + sorted_vector[this_size * 8 / 10 + 1]) / 2;
+    percentiles[8] = (sorted_vector[this_size * 9 / 10] + sorted_vector[this_size * 9 / 10 + 1]) / 2;
+    percentiles[9] = calculate_maximum();
+  }
+  else
+  {
+    percentiles[0] = sorted_vector[this_size / 10];
+    percentiles[1] = sorted_vector[this_size * 2 / 10];
+    percentiles[2] = sorted_vector[this_size * 3 / 10];
+    percentiles[3] = sorted_vector[this_size * 4 / 10];
+    percentiles[4] = sorted_vector[this_size * 5 / 10];
+    percentiles[5] = sorted_vector[this_size * 6 / 10];
+    percentiles[6] = sorted_vector[this_size * 7 / 10];
+    percentiles[7] = sorted_vector[this_size * 8 / 10];
+    percentiles[8] = sorted_vector[this_size * 9 / 10];
+    percentiles[9] = calculate_maximum();
+  }
+
+  return (percentiles);
+}
+
 
 /// Returns the quarters of the elements in the vector when there are missing values.
 /// @param missing_indices Vector with the indices of the missing values.
@@ -2611,33 +5583,29 @@ Vector<double> Vector<T>::calculate_quartiles_missing_values(const Vector<size_t
     const size_t this_size = this->size();
     const size_t missing_indices_number = missing_indices.size();
 
+    const Vector<T> values_to_remove = this->get_subvector(missing_indices);
+
     Vector<T> sorted_vector(*this);
 
-    for(size_t i = 0; i < missing_indices_number; i++)
-    {
-        sorted_vector.remove_element(missing_indices[i]);
-    }
+    sorted_vector = sorted_vector.difference(values_to_remove);
 
-    std::sort(sorted_vector.begin(), sorted_vector.end(), std::less<double>());
+    sort(sorted_vector.begin(), sorted_vector.end(), less<double>());
 
     const size_t actual_size = this_size - missing_indices_number;
 
-    Vector<double> quartiles(4);
+    Vector<double> quartiles(3);
 
-    if(actual_size % 2 == 0) {
-      quartiles[0] = (sorted_vector[actual_size / 4] + sorted_vector[actual_size / 4 + 1]) / 2;
-      quartiles[1] = (sorted_vector[actual_size * 2 / 4] +
-                     sorted_vector[actual_size * 2 / 4 + 1]) /
-                    2;
-      quartiles[2] = (sorted_vector[actual_size * 3 / 4] +
-                     sorted_vector[actual_size * 3 / 4 + 1]) /
-                    2;
-      quartiles[3] = sorted_vector[actual_size - 1];
-    } else {
-      quartiles[0] = sorted_vector[actual_size / 4 /*+ 1*/];
-      quartiles[1] = sorted_vector[actual_size * 2 / 4 /*+ 1*/];
-      quartiles[2] = sorted_vector[actual_size * 3 / 4 /*+ 1*/];
-      quartiles[3] = sorted_vector[actual_size - 1];
+    if(actual_size % 2 == 0)
+    {
+      quartiles[0] = (sorted_vector[actual_size / 4] + sorted_vector[actual_size / 4 + 1]) / 2.0;
+      quartiles[1] = (sorted_vector[actual_size * 2 / 4] + sorted_vector[actual_size * 2 / 4 + 1]) / 2.0;
+      quartiles[2] = (sorted_vector[actual_size * 3 / 4] + sorted_vector[actual_size * 3 / 4 + 1]) / 2.0;
+    }
+    else
+    {
+      quartiles[0] = sorted_vector[actual_size / 4];
+      quartiles[1] = sorted_vector[actual_size * 2 / 4];
+      quartiles[2] = sorted_vector[actual_size * 3 / 4];
     }
 
     return (quartiles);
@@ -2648,8 +5616,7 @@ Vector<double> Vector<T>::calculate_quartiles_missing_values(const Vector<size_t
 /// Returns the mean of the elements in the vector.
 
 template <class T>
-double Vector<T>::calculate_mean_missing_values(
-    const Vector<size_t> &missing_indices) const {
+double Vector<T>::calculate_mean_missing_values(const Vector<size_t> &missing_indices) const {
   const size_t this_size = this->size();
 
 // Control sentence (if debug)
@@ -2657,14 +5624,14 @@ double Vector<T>::calculate_mean_missing_values(
 #ifdef __OPENNN_DEBUG__
 
   if(this_size == 0) {
-    std::ostringstream buffer;
+    ostringstream buffer;
 
     buffer << "OpenNN Exception: Vector Template.\n"
            << "double calculate_mean_missing_values(const Vector<size_t>&) "
               "const method.\n"
            << "Size must be greater than zero.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
 #endif
@@ -2699,14 +5666,14 @@ double Vector<T>::calculate_variance_missing_values(
 #ifdef __OPENNN_DEBUG__
 
   if(this_size == 0) {
-    std::ostringstream buffer;
+    ostringstream buffer;
 
     buffer << "OpenNN Exception: Vector Template.\n"
            << "double calculate_variance_missing_values(const Vector<size_t>&) "
               "const method.\n"
            << "Size must be greater than zero.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
 #endif
@@ -2729,7 +5696,7 @@ double Vector<T>::calculate_variance_missing_values(
     return (0.0);
   }
 
-  const double numerator = squared_sum - (sum * sum) / count;
+  const double numerator = squared_sum - (sum * sum) / (double)count;
   const double denominator = this_size - 1.0;
 
   return (numerator / denominator);
@@ -2750,26 +5717,26 @@ double Vector<T>::calculate_weighted_mean(const Vector<double> & weights) const
   #ifdef __OPENNN_DEBUG__
 
     if(this_size == 0) {
-      std::ostringstream buffer;
+      ostringstream buffer;
 
       buffer << "OpenNN Exception: Vector Template.\n"
              << "double calculate_weighted_mean(const Vector<double>&) const method.\n"
              << "Size must be greater than zero.\n";
 
-      throw std::logic_error(buffer.str());
+      throw logic_error(buffer.str());
     }
 
     const size_t weights_size = weights.size();
 
     if(this_size != weights_size) {
-      std::ostringstream buffer;
+      ostringstream buffer;
 
       buffer << "OpenNN Exception: Vector Template.\n"
              << "double calculate_weighted_mean(const Vector<double>&) "
                 "const method.\n"
              << "Size of weights must be equal to vector size.\n";
 
-      throw std::logic_error(buffer.str());
+      throw logic_error(buffer.str());
     }
   #endif
 
@@ -2803,14 +5770,14 @@ double Vector<T>::calculate_standard_deviation_missing_values(
   const size_t this_size = this->size();
 
   if(this_size == 0) {
-    std::ostringstream buffer;
+    ostringstream buffer;
 
     buffer << "OpenNN Exception: Vector Template.\n"
            << "double calculate_standard_deviation_missing_values(const "
               "Vector<size_t>&) const method.\n"
            << "Size must be greater than zero.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
 #endif
@@ -2833,14 +5800,14 @@ double Vector<T>::calculate_asymmetry_missing_values(
 #ifdef __OPENNN_DEBUG__
 
   if(this_size == 0) {
-    std::ostringstream buffer;
+    ostringstream buffer;
 
     buffer << "OpenNN Exception: Vector Template.\n"
            << "double calculate_asymmetry_missing_values(const "
               "Vector<size_t>&) const method.\n"
            << "Size must be greater than zero.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
 #endif
@@ -2863,7 +5830,7 @@ double Vector<T>::calculate_asymmetry_missing_values(
     }
   }
 
-  const double numerator = sum / this_size;
+  const double numerator = sum / (double)this_size;
   const double denominator =
       standard_deviation * standard_deviation * standard_deviation;
 
@@ -2884,14 +5851,14 @@ double Vector<T>::calculate_kurtosis_missing_values(
 #ifdef __OPENNN_DEBUG__
 
   if(this_size == 0) {
-    std::ostringstream buffer;
+    ostringstream buffer;
 
     buffer << "OpenNN Exception: Vector Template.\n"
            << "double calculate_kurtosis_missing_values(const Vector<size_t>&) "
               "const method.\n"
            << "Size must be greater than zero.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
 #endif
@@ -2915,7 +5882,7 @@ double Vector<T>::calculate_kurtosis_missing_values(
     }
   }
 
-  const double numerator = sum / this_size;
+  const double numerator = sum / (double)this_size;
   const double denominator = standard_deviation*standard_deviation*standard_deviation*standard_deviation;
 
   return ((numerator/denominator)-3.0);
@@ -2929,72 +5896,170 @@ double Vector<T>::calculate_kurtosis_missing_values(
 template <class T> Statistics<T> Vector<T>::calculate_statistics(void) const {
 // Control sentence (if debug)
 
+    const size_t this_size = this->size();
+
 #ifdef __OPENNN_DEBUG__
 
-  const size_t this_size = this->size();
-
   if(this_size == 0) {
-    std::ostringstream buffer;
+    ostringstream buffer;
 
     buffer << "OpenNN Exception: Vector Template.\n"
            << "double calculate_statistics(void).\n"
            << "Size must be greater than zero.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
 #endif
 
   Statistics<T> statistics;
 
-  statistics.minimum = calculate_minimum();
-  statistics.maximum = calculate_maximum();
-  statistics.mean = calculate_mean();
-  statistics.standard_deviation = calculate_standard_deviation();
+  T minimum = numeric_limits<T>::max();
+  T maximum;
+
+  double sum = 0;
+  double squared_sum = 0;
+  size_t count = 0;
+
+  if(numeric_limits<T>::is_signed)
+  {
+    maximum = -1*numeric_limits<T>::max();
+  }
+  else
+  {
+    maximum = 0;
+  }
+
+  for (size_t i = 0; i < this_size; i++)
+  {
+      if((*this)[i] < minimum)
+      {
+          minimum = (*this)[i];
+      }
+
+      if((*this)[i] > maximum)
+      {
+          maximum = (*this)[i];
+      }
+
+      sum += (*this)[i];
+      squared_sum += (*this)[i] * (*this)[i];
+
+      count++;
+  }
+
+  const double mean = sum/(double)count;
+
+  double standard_deviation;
+
+  if(count <= 1)
+  {
+    standard_deviation = 0.0;
+  }
+  else
+  {
+      const double numerator = squared_sum - (sum * sum) / count;
+      const double denominator = this_size - 1.0;
+
+      standard_deviation = numerator / denominator;
+  }
+
+  standard_deviation = sqrt(standard_deviation);
+
+  statistics.minimum = minimum;
+  statistics.maximum = maximum;
+  statistics.mean = mean;
+  statistics.standard_deviation = standard_deviation;
 
   return (statistics);
 }
 
-// Statistics<T> calculate_statistics_missing_values(const Vector<size_t>&)
-// const method
 
-/// Returns the minimum, maximum, mean and standard deviation of the elements in
-/// the vector.
+/// Returns the minimum, maximum, mean and standard deviation of the elements in the vector.
 
 template <class T>
 Statistics<T> Vector<T>::calculate_statistics_missing_values(
-    const Vector<size_t> &missing_indices) const {
+    const Vector<size_t> &missing_indices) const
+{
 // Control sentence (if debug)
+
+    const size_t this_size = this->size();
 
 #ifdef __OPENNN_DEBUG__
 
-  const size_t this_size = this->size();
-
   if(this_size == 0) {
-    std::ostringstream buffer;
+    ostringstream buffer;
 
     buffer << "OpenNN Exception: Vector Template.\n"
            << "double calculate_statistics_missing_values(const "
               "Vector<size_t>&).\n"
            << "Size must be greater than zero.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
 #endif
 
   Statistics<T> statistics;
 
-  statistics.minimum = calculate_minimum_missing_values(missing_indices);
-  statistics.maximum = calculate_maximum_missing_values(missing_indices);
-  statistics.mean = calculate_mean_missing_values(missing_indices);
-  statistics.standard_deviation =
-      calculate_standard_deviation_missing_values(missing_indices);
+  T minimum = numeric_limits<T>::max();
+  T maximum;
+
+  double sum = 0;
+  double squared_sum = 0;
+  size_t count = 0;
+
+  if(numeric_limits<T>::is_signed) {
+    maximum = -numeric_limits<T>::max();
+  } else {
+    maximum = 0;
+  }
+
+  for (size_t i = 0; i < this_size; i++) {
+      if(!missing_indices.contains(i))
+      {
+          if((*this)[i] < minimum)
+          {
+            minimum = (*this)[i];
+          }
+
+          if((*this)[i] > maximum) {
+            maximum = (*this)[i];
+          }
+
+          sum += (*this)[i];
+          squared_sum += (*this)[i] * (*this)[i];
+
+          count++;
+      }
+  }
+
+  const double mean = sum/(double)count;
+
+  double standard_deviation;
+
+  if(count <= 1)
+  {
+    standard_deviation = 0.0;
+  }
+  else
+  {
+      const double numerator = squared_sum - (sum * sum) / count;
+      const double denominator = this_size - 1.0;
+
+      standard_deviation = numerator / denominator;
+  }
+
+  standard_deviation = sqrt(standard_deviation);
+
+  statistics.minimum = minimum;
+  statistics.maximum = maximum;
+  statistics.mean = mean;
+  statistics.standard_deviation = standard_deviation;
 
   return (statistics);
 }
 
-// Vector<double> calculate_shape_parameters(void) const
 
 /// Returns a vector with the asymmetry and the kurtosis values of the elements
 /// in the vector.
@@ -3008,13 +6073,13 @@ Vector<double> Vector<T>::calculate_shape_parameters(void) const {
   const size_t this_size = this->size();
 
   if(this_size == 0) {
-    std::ostringstream buffer;
+    ostringstream buffer;
 
     buffer << "OpenNN Exception: Vector Template.\n"
            << "Vector<double> calculate_shape_parameters(void).\n"
            << "Size must be greater than zero.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
 #endif
@@ -3027,8 +6092,6 @@ Vector<double> Vector<T>::calculate_shape_parameters(void) const {
   return (shape_parameters);
 }
 
-// Vector<double> calculate_shape_parameters_missing_values(const
-// Vector<size_t>&) const
 
 /// Returns a vector with the asymmetry and the kurtosis values of the elements
 /// in the vector.
@@ -3043,14 +6106,14 @@ Vector<double> Vector<T>::calculate_shape_parameters_missing_values(
   const size_t this_size = this->size();
 
   if(this_size == 0) {
-    std::ostringstream buffer;
+    ostringstream buffer;
 
     buffer << "OpenNN Exception: Vector Template.\n"
            << "double calculate_shape_parameters_missing_values(const "
               "Vector<size_t>&).\n"
            << "Size must be greater than zero.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
 #endif
@@ -3063,44 +6126,75 @@ Vector<double> Vector<T>::calculate_shape_parameters_missing_values(
   return (shape_parameters);
 }
 
-// Vector<double> calculate_box_plots(void) const
 
 /// Returns the box and whispers for a vector.
 
 template <class T>
-Vector<double> Vector<T>::calculate_box_plots(void) const {
-  Vector<double> box_plots(5);
+Vector<double> Vector<T>::calculate_box_plot(void) const {
 
-  Vector<double> quartiles = calculate_quartiles();
+  Vector<double> box_plots(5, 0.0);
+
+  if(this->empty()) return box_plots;
+
+  const Vector<double> quartiles = calculate_quartiles();
 
   box_plots[0] = calculate_minimum();
   box_plots[1] = quartiles[0];
   box_plots[2] = quartiles[1];
   box_plots[3] = quartiles[2];
-  box_plots[4] = quartiles[3];
+  box_plots[4] = calculate_maximum();
 
   return (box_plots);
 }
 
-// Vector<double> calculate_box_plots_missing_values(const Vector<size_t>&) const
 
 /// Returns the box and whispers for a vector when there are missing values.
 /// @param missing_indices Vector with the indices of the missing values.
 
 template <class T>
-Vector<double> Vector<T>::calculate_box_plots_missing_values(const Vector<size_t> & missing_indices) const
+Vector<double> Vector<T>::calculate_box_plot_missing_values(const Vector<size_t> & missing_indices) const
 {
     Vector<double> box_plots(5);
 
     Vector<double> quartiles = calculate_quartiles_missing_values(missing_indices);
 
-    box_plots[0] = calculate_minimum();
+    box_plots[0] = calculate_minimum_missing_values(missing_indices);
     box_plots[1] = quartiles[0];
     box_plots[2] = quartiles[1];
     box_plots[3] = quartiles[2];
-    box_plots[4] = quartiles[3];
+    box_plots[4] = calculate_maximum_missing_values(missing_indices);
 
     return (box_plots);
+}
+
+template <class T>
+size_t Vector<T>::calculate_sample_index_proportional_probability() const
+{
+    const size_t this_size = this->size();
+
+    Vector<double> cumulative = this->calculate_cumulative();
+
+    const double sum = calculate_sum();
+
+    const double random = calculate_random_uniform(0.,sum);
+
+    size_t selected_index = 0;
+
+    for (size_t i = 0; i < this_size; i++)
+    {
+        if(i == 0 && random < cumulative[0])
+        {
+            selected_index = i;
+            break;
+        }
+        else if(random < cumulative[i] && random >= cumulative[i-1])
+        {
+            selected_index = i;
+            break;
+        }
+    }
+
+    return selected_index;
 }
 
 // double calculate_norm(void) const method
@@ -3123,7 +6217,6 @@ template <class T> double Vector<T>::calculate_norm(void) const {
   return (norm);
 }
 
-// Vector<T> calculate_norm_gradient(void) const method
 
 /// Returns the gradient of the vector norm.
 
@@ -3177,14 +6270,14 @@ template <class T> double Vector<T>::calculate_p_norm(const double &p) const {
 
 #ifdef __OPENNN_DEBUG__
 
-  std::ostringstream buffer;
+  ostringstream buffer;
 
   if(p <= 0) {
     buffer << "OpenNN Exception: Vector Template.\n"
            << "double calculate_p_norm(const double&) const method.\n"
            << "p value must be greater than zero.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
 #endif
@@ -3204,7 +6297,6 @@ template <class T> double Vector<T>::calculate_p_norm(const double &p) const {
   return (norm);
 }
 
-// Vector<double> calculate_p_norm_gradient(const double&) const method
 
 /// Returns the gradient of the vector norm.
 
@@ -3214,7 +6306,7 @@ Vector<double> Vector<T>::calculate_p_norm_gradient(const double &p) const {
 
 #ifdef __OPENNN_DEBUG__
 
-  std::ostringstream buffer;
+  ostringstream buffer;
 
   if(p <= 0) {
     buffer << "OpenNN Exception: Vector Template.\n"
@@ -3222,7 +6314,7 @@ Vector<double> Vector<T>::calculate_p_norm_gradient(const double &p) const {
               "method.\n"
            << "p value must be greater than zero.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
 #endif
@@ -3268,18 +6360,7 @@ template <class T> Vector<T> Vector<T>::calculate_normalized(void) const {
 
   return (normalized);
 }
-/*
-// double calculate_distance(const Vector<double>&) const method
 
-/// Returns the distance between the elements of this vector and the elements of
-/// another vector.
-/// @param other_vector Other vector.
-
-template <class T>
-double Vector<T>::calculate_distance(const Vector<double> &other_vector) const {
-  return (sqrt(calculate_sum_squared_error(other_vector)));
-}
-*/
 // double calculate_distance(const Vector<double>&) const method
 
 /// Returns the distance between the elements of this vector and the elements of
@@ -3295,17 +6376,18 @@ double Vector<T>::calculate_distance(const Vector<T> &other_vector) const {
   const size_t other_size = other_vector.size();
 
   if(other_size != this_size) {
-    std::ostringstream buffer;
+    ostringstream buffer;
 
     buffer << "OpenNN Exception: Vector Template.\n"
            << "double calculate_distance(const Vector<T>&) const "
               "method.\n"
            << "Size must be equal to this size.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
 #endif
+
     double distance = 0.0;
     double error;
 
@@ -3317,6 +6399,7 @@ double Vector<T>::calculate_distance(const Vector<T> &other_vector) const {
 
     return (sqrt(distance));
 }
+
 
 // double calculate_sum_squared_error(const Vector<double>&) const method
 
@@ -3336,14 +6419,14 @@ double Vector<T>::calculate_sum_squared_error(
   const size_t other_size = other_vector.size();
 
   if(other_size != this_size) {
-    std::ostringstream buffer;
+    ostringstream buffer;
 
     buffer << "OpenNN Exception: Vector Template.\n"
            << "double calculate_sum_squared_error(const Vector<double>&) const "
               "method.\n"
            << "Size must be equal to this size.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
 #endif
@@ -3382,13 +6465,13 @@ double Vector<T>::calculate_sum_squared_error(
 
    if(other_size != this_size)
    {
-      std::ostringstream buffer;
+      ostringstream buffer;
 
       buffer << "OpenNN Exception: Vector Template.\n"
              << "double calculate_sum_squared_error(const Matrix<T>&, const size_t&, const Vector<size_t>&) const method.\n"
              << "Size must be equal to this size.\n";
 
-      throw std::logic_error(buffer.str());
+      throw logic_error(buffer.str());
    }
 
 #endif
@@ -3424,7 +6507,7 @@ Vector<T>::calculate_Minkowski_error(const Vector<double> &other_vector,
 
 #ifdef __OPENNN_DEBUG__
 
-  std::ostringstream buffer;
+  ostringstream buffer;
 
   if(this_size == 0) {
     buffer << "OpenNN Exception: Vector Template.\n"
@@ -3432,7 +6515,7 @@ Vector<T>::calculate_Minkowski_error(const Vector<double> &other_vector,
               "method.\n"
            << "Size must be greater than zero.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
   const size_t other_size = other_vector.size();
@@ -3443,7 +6526,7 @@ Vector<T>::calculate_Minkowski_error(const Vector<double> &other_vector,
               "method.\n"
            << "Other size must be equal to this size.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
   // Control sentence
@@ -3454,7 +6537,7 @@ Vector<T>::calculate_Minkowski_error(const Vector<double> &other_vector,
               "method.\n"
            << "The Minkowski parameter must be comprised between 1 and 2\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
 #endif
@@ -3471,9 +6554,134 @@ Vector<T>::calculate_Minkowski_error(const Vector<double> &other_vector,
   return (Minkowski_error);
 }
 
-// T calculate_linear_correlation(const Vector<T>&) const method
 
-/// Calculates the linear correlation coefficient (R-value) between another
+template <class T>
+double Vector<T>::calculate_spearman_linear_correlation(const Vector<T> &other) const
+{
+    size_t n = this->size();
+
+    size_t m = other.size();
+
+    if (n-m != 0)
+    {
+        ostringstream buffer;
+
+        buffer << "OpenNN Exception: Vector Template.\n"
+               << "Vector<T> calculate_spearman_linear_correlation(const "
+               << "Vector<T>&) method.\n"
+               << "Both vectors must have the same size.\n";
+
+        throw logic_error(buffer.str());
+    }
+
+    double linear_correlation = 0.0;
+
+    Vector<double> indices_n = (*this).calculate_less_rank().to_double_vector();
+
+    const Vector<T> this_unique = (*this).get_unique_elements();
+    const Vector<size_t> this_unique_frecuency = (*this).count_unique();
+
+    for (size_t  i = 0; i < this_unique.size(); i++)
+    {
+        if (this_unique_frecuency[i] > 1)
+        {
+             const T unique = this_unique[i];
+
+             Vector<double> indices(this_unique_frecuency[i]);
+
+             for (size_t j = 0; j < n; j++)
+             {
+                 if ((*this)[j] == unique)
+                 {
+                     indices.push_back(indices_n[j]);
+                 }
+             }
+
+             const double mean_indice = indices.calculate_mean();
+
+             for(size_t j = 0; j < n; j++)
+             {
+                 if ((*this)[j] == unique)
+                 {
+                     indices_n[j] = mean_indice;
+                 }
+             }
+        }
+    }
+
+    Vector<double> indices_m = other.calculate_less_rank().to_double_vector();
+
+    const Vector<T> other_unique = other.get_unique_elements();
+    const Vector<size_t> other_unique_frecuency = other.count_unique();
+
+    for (size_t  i = 0; i < other_unique.size(); i++)
+    {
+        if (other_unique_frecuency[i] > 1)
+        {
+             const T unique = other_unique[i];
+
+             Vector<double> indices(other_unique_frecuency[i]);
+
+             for (size_t j = 0; j < m; j++)
+             {
+                 if (other[j] == unique)
+                 {
+                     indices.push_back(indices_m[j]);
+                 }
+             }
+
+             const double mean_indice = indices.calculate_mean();
+
+             for(size_t j = 0; j < m; j++)
+             {
+                 if (other[j] == unique)
+                 {
+                     indices_m[j] = mean_indice;
+                 }
+             }
+        }
+    }
+
+    Vector<double> substraction_substraction(indices_n.size());
+
+    for (size_t i = 0; i < n; i++)
+    {
+        substraction_substraction[i] = (indices_m[i]-indices_n[i])*(indices_m[i]-indices_n[i]);
+    }
+
+    linear_correlation = 1 - (6*substraction_substraction.calculate_sum()/(n*((n^2)-1)));
+
+    return (linear_correlation);
+}
+
+
+template <class T>
+double Vector<T>::calculate_correlation(const Vector<T>& other) const
+{
+    const bool this_binary = is_binary();
+
+    const bool other_binary = other.is_binary();
+
+    if(!this_binary && !other_binary)
+    {
+        return calculate_linear_correlation(other);
+    }
+    else if(this_binary && other_binary)
+    {
+        return calculate_linear_correlation(other);
+    }
+    else if(this_binary && !other_binary)
+    {
+        return calculate_logistic_correlation(other);
+    }
+    else if(!this_binary && other_binary)
+    {
+        return other.calculate_logistic_correlation(*this);
+    }
+}
+
+
+/// Calculates the linear correlation coefficient (Pearson method) (R-value) between another
 /// vector and this vector.
 /// @param other Vector for computing the linear correlation with this vector.
 
@@ -3487,14 +6695,14 @@ double Vector<T>::calculate_linear_correlation(const Vector<T> &other) const {
 
   const size_t other_size = other.size();
 
-  std::ostringstream buffer;
+  ostringstream buffer;
 
   if(other_size != n) {
     buffer << "OpenNN Exception: Vector Template.\n"
            << "T calculate_linear_correlation(const Vector<T>&) const method.\n"
            << "Other size must be equal to this size.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
 #endif
@@ -3554,7 +6762,7 @@ double Vector<T>::calculate_linear_correlation(const Vector<T> &other) const {
     const double radicand = (n * s_xx - s_x * s_x) * (n * s_yy - s_y * s_y);
 
     if(radicand <= 0.0) {
-      return (0);
+      return (1);
     }
 
     const double denominator = sqrt(radicand);
@@ -3569,8 +6777,73 @@ double Vector<T>::calculate_linear_correlation(const Vector<T> &other) const {
   return (linear_correlation);
 }
 
-// T calculate_linear_correlation_missing_values(const Vector<T>&, const
-// Vector<size_t>&) const method
+template <class T>
+double Vector<T>::calculate_logistic_correlation(const Vector<T>& other) const
+{
+    const size_t n = this->size();
+
+  // Control sentence (if debug)
+
+  #ifdef __OPENNN_DEBUG__
+
+    const size_t other_size = other.size();
+
+    ostringstream buffer;
+
+    if(other_size != n) {
+      buffer << "OpenNN Exception: Vector Template.\n"
+             << "double calculate_logistic_correlation(const Vector<T>&) const method.\n"
+             << "Other size must be equal to this size.\n";
+
+      throw logic_error(buffer.str());
+    }
+
+  #endif
+
+    Vector<double> coefficients(2);
+
+    coefficients[0] = 1.0;
+    coefficients[1] = 0.0;
+
+    Vector<double> error_gradient = calculate_logistic_error_gradient(coefficients,other);
+
+    for(size_t i = 0; i < 150; i++)
+    {
+        const Vector<double> current_gradient = error_gradient.get_last(2);
+
+        coefficients -= current_gradient*0.01;
+
+        error_gradient = calculate_logistic_error_gradient(coefficients,other);
+
+        if(error_gradient[0] < 1.0e-3) break;
+        if(current_gradient < 1.0e-3) break;
+    }
+
+    Vector<double> x(1);
+    Vector<T> output(n);
+
+    for(size_t i = 0; i < n; i++)
+    {
+        x[0] = (*this)[i];
+
+        output[i] = this->calculate_logistic_function(coefficients,x);
+    }
+
+    double correlation = output.calculate_linear_correlation(other);
+
+//    if(correlation <= 0)
+//    {
+//        return 0.0;
+//    }
+
+    if(coefficients[1] < 0)
+    {
+        correlation = -correlation;
+    }
+
+    return correlation;
+}
+
 
 /// Calculates the linear correlation coefficient (R-value) between another
 /// vector and this vector when there are missing values in the data.
@@ -3588,17 +6861,22 @@ T Vector<T>::calculate_linear_correlation_missing_values(
 
   const size_t other_size = other.size();
 
-  std::ostringstream buffer;
+  ostringstream buffer;
 
   if(other_size != n) {
     buffer << "OpenNN Exception: Vector Template.\n"
            << "T calculate_linear_correlation(const Vector<T>&) const method.\n"
            << "Other size must be equal to this size.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
 #endif
+
+  if(missing_indices.size() >= n)
+  {
+    return 0;
+  }
 
   size_t count = 0;
 
@@ -3643,7 +6921,39 @@ T Vector<T>::calculate_linear_correlation_missing_values(
   return (linear_correlation);
 }
 
-// Vector<double> calculate_autocorrelation(const size_t&) const
+template <class T>
+T Vector<T>::calculate_logistic_correlation_missing_values(const Vector<T>& other, const Vector<size_t> & missing_indices) const
+{
+    const size_t n = this->size();
+
+  // Control sentence (if debug)
+
+  #ifdef __OPENNN_DEBUG__
+
+    const size_t other_size = other.size();
+
+    ostringstream buffer;
+
+    if(other_size != n) {
+      buffer << "OpenNN Exception: Vector Template.\n"
+             << "T calculate_logistic_correlation_missing_values(const Vector<T>&, const Vector<size_t> &) const method.\n"
+             << "Other size must be equal to this size.\n";
+
+      throw logic_error(buffer.str());
+    }
+
+  #endif
+
+    if(missing_indices.size() >= n)
+    {
+      return 0;
+    }
+
+    Vector<T> this_valid = this->delete_indices(missing_indices);
+    Vector<T> other_valid = other.delete_indices(missing_indices);
+
+    return this_valid.calculate_logistic_correlation(other_valid);
+}
 
 /// Calculates autocorrelation for a given number of maximum lags.
 /// @param lags_number Maximum lags number.
@@ -3651,6 +6961,7 @@ T Vector<T>::calculate_linear_correlation_missing_values(
 template <class T>
 Vector<double>
 Vector<T>::calculate_autocorrelation(const size_t &lags_number) const {
+
   Vector<double> autocorrelation(lags_number);
 
   const double mean = calculate_mean();
@@ -3660,18 +6971,23 @@ Vector<T>::calculate_autocorrelation(const size_t &lags_number) const {
   double numerator = 0;
   double denominator = 0;
 
-  for (size_t i = 0; i < lags_number; i++) {
-    for (size_t j = 0; j < this_size - i; j++) {
-      numerator +=
-          (((*this)[j] - mean) * ((*this)[j + i] - mean)) / (this_size - i);
+  for (size_t i = 0; i < lags_number; i++)
+  {
+    for (size_t j = 0; j < this_size - i; j++)
+    {
+      numerator += (((*this)[j] - mean) * ((*this)[j + i] - mean)) / ((double)this_size - i);
     }
-    for (size_t j = 0; j < this_size; j++) {
-      denominator += (((*this)[j] - mean) * ((*this)[j] - mean)) / this_size;
+    for (size_t j = 0; j < this_size; j++)
+    {
+      denominator += (((*this)[j] - mean) * ((*this)[j] - mean)) / (double)this_size;
     }
 
-    if(denominator == 0.0) {
-      autocorrelation[i] = 1.0;
-    } else {
+    if(denominator == 0.0)
+    {
+     autocorrelation[i] = 1.0;
+    }
+    else
+    {
       autocorrelation[i] = numerator / denominator;
     }
 
@@ -3682,8 +6998,6 @@ Vector<T>::calculate_autocorrelation(const size_t &lags_number) const {
   return autocorrelation;
 }
 
-// Vector<double> calculate_cross_correlation(cosnt Vector<double>&, const
-// size_t&) const
 
 /// Calculates the cross-correlation between this vector and another given
 /// vector.
@@ -3692,17 +7006,18 @@ Vector<T>::calculate_autocorrelation(const size_t &lags_number) const {
 /// calculated.
 
 template <class T>
-Vector<double> Vector<T>::calculate_cross_correlation(
-    const Vector<double> &other, const size_t &maximum_lags_number) const {
+Vector<double> Vector<T>:: calculate_cross_correlation(
+    const Vector<double> &other, const size_t &maximum_lags_number) const{
+
   if(other.size() != this->size()) {
-    std::ostringstream buffer;
+    ostringstream buffer;
 
     buffer << "OpenNN Exception: Vector Template.\n"
            << "Vector<double calculate_cross_correlation(const "
-              "Vector<double>&) method.\n"
+           << "Vector<double>&) method.\n"
            << "Both vectors must have the same size.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
   Vector<double> cross_correlation(maximum_lags_number);
@@ -3718,21 +7033,24 @@ Vector<double> Vector<T>::calculate_cross_correlation(
   double other_denominator = 0;
   double denominator = 0;
 
-  for (size_t i = 0; i < maximum_lags_number; i++) {
+  for (size_t i = 0; i < maximum_lags_number; i++)
+  {
     numerator = 0;
     this_denominator = 0;
     other_denominator = 0;
 
-    for (size_t j = 0; j < this_size; j++) {
+    for (size_t j = 0; j < this_size - i; j++)
+    {
+      numerator += ((*this)[j] - this_mean) * (other[j + i] - other_mean);
+    }
+
+    for (size_t j = 0; j < this_size; j++)
+    {
       this_denominator += ((*this)[j] - this_mean) * ((*this)[j] - this_mean);
       other_denominator += (other[j] - other_mean) * (other[j] - other_mean);
     }
 
     denominator = sqrt(this_denominator * other_denominator);
-
-    for (size_t j = 0; j < this_size - i; j++) {
-      numerator += ((*this)[j] - this_mean) * (other[j + i] - other_mean);
-    }
 
     if(denominator == 0.0) {
       cross_correlation[i] = 0.0;
@@ -3744,8 +7062,6 @@ Vector<double> Vector<T>::calculate_cross_correlation(
   return (cross_correlation);
 }
 
-// LinearRegressionParameters<T> calculate_linear_regression_parameters(const
-// Vector<T>&) const method
 
 /// Calculates the linear regression parameters (intercept, slope and
 /// correlation) between another vector and this vector.
@@ -3754,25 +7070,25 @@ Vector<double> Vector<T>::calculate_cross_correlation(
 
 template <class T>
 LinearRegressionParameters<T> Vector<T>::calculate_linear_regression_parameters(
-    const Vector<T> &other) const {
+    const Vector<T> &x) const {
   const size_t n = this->size();
 
 // Control sentence (if debug)
 
 #ifdef __OPENNN_DEBUG__
 
-  const size_t other_size = other.size();
+  const size_t x_size = x.size();
 
-  std::ostringstream buffer;
+  ostringstream buffer;
 
-  if(other_size != n) {
+  if(x_size != n) {
     buffer << "OpenNN Exception: Vector Template.\n"
            << "LinearRegressionParameters<T> "
               "calculate_linear_regression_parameters(const Vector<T>&) const "
               "method.\n"
            << "Other size must be equal to this size.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
 #endif
@@ -3786,23 +7102,23 @@ LinearRegressionParameters<T> Vector<T>::calculate_linear_regression_parameters(
   T s_xy = 0;
 
   for (size_t i = 0; i < n; i++) {
-    s_x += other[i];
+    s_x += x[i];
     s_y += (*this)[i];
 
-    s_xx += other[i] * other[i];
+    s_xx += x[i] * x[i];
     s_yy += (*this)[i] * (*this)[i];
 
-    s_xy += other[i] * (*this)[i];
+    s_xy += x[i] * (*this)[i];
   }
 
   LinearRegressionParameters<T> linear_regression_parameters;
 
   if(s_x == 0 && s_y == 0 && s_xx == 0 && s_yy == 0 && s_xy == 0) {
-    linear_regression_parameters.intercept = 0;
+    linear_regression_parameters.intercept = 0.0;
 
-    linear_regression_parameters.slope = 0;
+    linear_regression_parameters.slope = 0.0;
 
-    linear_regression_parameters.correlation = 1;
+    linear_regression_parameters.correlation = 1.0;
   } else {
     linear_regression_parameters.intercept =
         (s_y * s_xx - s_x * s_xy) / (n * s_xx - s_x * s_x);
@@ -3810,13 +7126,21 @@ LinearRegressionParameters<T> Vector<T>::calculate_linear_regression_parameters(
     linear_regression_parameters.slope =
         (n * s_xy - s_x * s_y) / (n * s_xx - s_x * s_x);
 
-    linear_regression_parameters.correlation =
-        (n * s_xy - s_x * s_y) /
-        sqrt((n * s_xx - s_x * s_x) * (n * s_yy - s_y * s_y));
+    if(sqrt((n * s_xx - s_x * s_x) * (n * s_yy - s_y * s_y)) < 1.0e-12)
+    {
+        linear_regression_parameters.correlation = 1.0;
+    }
+    else
+    {
+        linear_regression_parameters.correlation =
+            (n * s_xy - s_x * s_y) /
+            sqrt((n * s_xx - s_x * s_x) * (n * s_yy - s_y * s_y));
+    }
   }
 
   return (linear_regression_parameters);
 }
+
 
 // void calculate_absolute_value(void) const method
 
@@ -3852,7 +7176,6 @@ template <class T> void Vector<T>::apply_absolute_value(void) {
   }
 }
 
-// Vector<T> calculate_lower_bounded(const T&) const method
 
 /// Returns a vector with the bounded elements from below of the current vector.
 /// @param lower_bound Lower bound values.
@@ -3874,7 +7197,6 @@ Vector<T> Vector<T>::calculate_lower_bounded(const T &lower_bound) const {
   return (bounded_vector);
 }
 
-// Vector<T> calculate_lower_bounded(const Vector<T>&) const method
 
 /// Returns a vector with the bounded elements from above of the current vector.
 /// @param lower_bound Lower bound values.
@@ -3891,14 +7213,14 @@ Vector<T>::calculate_lower_bounded(const Vector<T> &lower_bound) const {
   const size_t lower_bound_size = lower_bound.size();
 
   if(lower_bound_size != this_size) {
-    std::ostringstream buffer;
+    ostringstream buffer;
 
     buffer
         << "OpenNN Exception: Vector Template.\n"
         << "Vector<T> calculate_lower_bounded(const Vector<T>&) const method.\n"
         << "Lower bound size must be equal to vector size.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
 #endif
@@ -3918,7 +7240,6 @@ Vector<T>::calculate_lower_bounded(const Vector<T> &lower_bound) const {
   return (bounded_vector);
 }
 
-// Vector<T> calculate_upper_bounded(const T&) const method
 
 /// This method bounds the elements of the vector if they fall above an upper
 /// bound value.
@@ -3941,7 +7262,6 @@ Vector<T> Vector<T>::calculate_upper_bounded(const T &upper_bound) const {
   return (bounded_vector);
 }
 
-// Vector<T> calculate_upper_bounded(const Vector<T>&) const method
 
 /// This method bounds the elements of the vector if they fall above their
 /// corresponding upper bound values.
@@ -3959,14 +7279,14 @@ Vector<T>::calculate_upper_bounded(const Vector<T> &upper_bound) const {
   const size_t upper_bound_size = upper_bound.size();
 
   if(upper_bound_size != this_size) {
-    std::ostringstream buffer;
+    ostringstream buffer;
 
     buffer
         << "OpenNN Exception: Vector Template.\n"
         << "Vector<T> calculate_upper_bounded(const Vector<T>&) const method.\n"
         << "Upper bound size must be equal to vector size.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
 #endif
@@ -3986,7 +7306,6 @@ Vector<T>::calculate_upper_bounded(const Vector<T> &upper_bound) const {
   return (bounded_vector);
 }
 
-// Vector<T> calculate_lower_upper_bounded(const T&, const T&) const method
 
 /// This method bounds the elements of the vector if they fall above or below
 /// their lower or upper
@@ -4014,8 +7333,6 @@ Vector<T> Vector<T>::calculate_lower_upper_bounded(const T &lower_bound,
   return (bounded_vector);
 }
 
-// Vector<T> calculate_lower_upper_bounded(const Vector<T>&, const Vector<T>&)
-// const method
 
 /// This method bounds the elements of the vector if they fall above or below
 /// their corresponding lower or upper
@@ -4037,14 +7354,14 @@ Vector<T>::calculate_lower_upper_bounded(const Vector<T> &lower_bound,
   const size_t upper_bound_size = upper_bound.size();
 
   if(lower_bound_size != this_size || upper_bound_size != this_size) {
-    std::ostringstream buffer;
+    ostringstream buffer;
 
     buffer << "OpenNN Exception: Vector Template.\n"
            << "Vector<T> calculate_lower_upper_bounded(const Vector<T>&, const "
               "Vector<T>&) const method.\n"
            << "Lower and upper bound sizes must be equal to vector size.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
 #endif
@@ -4177,12 +7494,10 @@ void Vector<T>::apply_lower_upper_bounds(const Vector<T> &lower_bound,
 }
 
 
-// Vector<size_t> sort_less_indices(void) const method
-
 /// Returns the vector of the indices of the vector sorted by less ranks.
 
 template <class T>
-Vector<size_t> Vector<T>::sort_less_indices(void) const
+Vector<size_t> Vector<T>::sort_ascending_indices(void) const
 {
     Vector<size_t> indices(this->size());
 
@@ -4198,7 +7513,7 @@ Vector<size_t> Vector<T>::sort_less_indices(void) const
 #else
 
     indices.initialize_sequential();
-    std::sort(indices.begin(), indices.end(), [this](size_t i1, size_t i2) {return (*this)[i1] < (*this)[i2];});
+    sort(indices.begin(), indices.end(), [this](size_t i1, size_t i2) {return (*this)[i1] < (*this)[i2];});
 
 #endif
 
@@ -4206,12 +7521,20 @@ Vector<size_t> Vector<T>::sort_less_indices(void) const
 }
 
 
-// Vector<size_t> sort_greater_indices(void) const method
+template <class T>
+Vector<T> Vector<T>::sort_ascending_values(void) const
+{
+    Vector<T> sorted(*this);
+
+    sort(sorted.begin(), sorted.end());
+
+    return sorted;
+}
 
 /// Returns the vector of the indices of the vector sorted by greater ranks.
 
 template <class T>
-Vector<size_t> Vector<T>::sort_greater_indices(void) const
+Vector<size_t> Vector<T>::sort_descending_indices(void) const
 {
     Vector<size_t> indices(this->size());
 
@@ -4227,7 +7550,7 @@ Vector<size_t> Vector<T>::sort_greater_indices(void) const
 #else
 
     indices.initialize_sequential();
-    std::sort(indices.begin(), indices.end(), [this](size_t i1, size_t i2) {return (*this)[i1] > (*this)[i2];});
+    sort(indices.begin(), indices.end(), [this](size_t i1, size_t i2) {return (*this)[i1] > (*this)[i2];});
 
 #endif
 
@@ -4235,7 +7558,15 @@ Vector<size_t> Vector<T>::sort_greater_indices(void) const
 }
 
 
-// Vector<size_t> calculate_less_rank(void) const method
+template <class T>
+Vector<T> Vector<T>::sort_descending_values(void) const
+{
+    Vector<T> sorted(*this);
+
+    sort(sorted.begin(), sorted.end());
+
+    return sorted.get_reverse();
+}
 
 /// Returns a vector with the rank of the elements of this vector.
 /// The smallest element will have rank 0, and the greatest element will have
@@ -4250,7 +7581,7 @@ template <class T> Vector<size_t> Vector<T>::calculate_less_rank(void) const
 
   Vector<T> sorted_vector(*this);
 
-  std::sort(sorted_vector.begin(), sorted_vector.end(), std::less<double>());
+  sort(sorted_vector.begin(), sorted_vector.end(), less<double>());
 
   Vector<size_t> previous_rank;
   previous_rank.set(this_size, -1);
@@ -4278,7 +7609,6 @@ template <class T> Vector<size_t> Vector<T>::calculate_less_rank(void) const
   return (rank);
 }
 
-// Vector<size_t> calculate_greater_rank(void) const method
 
 /// Returns a vector with the rank of the elements of this vector.
 /// The smallest element will have rank size-1, and the greatest element will
@@ -4294,7 +7624,7 @@ Vector<size_t> Vector<T>::calculate_greater_rank(void) const
 
   Vector<T> sorted_vector(*this);
 
-  std::sort(sorted_vector.begin(), sorted_vector.end(), std::greater<T>());
+  sort(sorted_vector.begin(), sorted_vector.end(), greater<T>());
 
   Vector<size_t> previous_rank;
   previous_rank.set(this_size, -1);
@@ -4323,7 +7653,57 @@ Vector<size_t> Vector<T>::calculate_greater_rank(void) const
 }
 
 
-// Vector<T> operator + (const T&) const method
+// @todo
+
+template <class T>
+Vector<size_t> Vector<T>::calculate_greater_indices(void) const
+{
+    const size_t this_size = (*this).size();
+
+    Vector<size_t> y(this_size);
+    size_t n(0);
+    std::generate(std::begin(y), std::end(y), [&]{ return n++; });
+
+    std::sort(std::begin(y), std::end(y), [&](size_t i1, size_t i2) { return (*this)[i1] > (*this)[i2]; } );
+
+  return (y);
+}
+
+/// Returns a vector sorted according to a given rank.
+/// @param rank Given rank.
+
+
+template <class T>
+Vector<T> Vector<T>::sort_rank(const Vector<size_t>& rank) const
+{
+    const size_t this_size = this->size();
+
+    #ifdef __OPENNN_DEBUG__
+    const size_t rank_size = rank.size();
+
+      if(this_size != rank_size) {
+        ostringstream buffer;
+
+        buffer << "OpenNN Exception: Vector Template.\n"
+               << "Vector<T> sort_rank(const Vector<size_t>&) const.\n"
+               << "Size of vectors is " << this_size << " and " << rank_size
+               << " and they must be the same.\n";
+
+        throw logic_error(buffer.str());
+      }
+
+    #endif
+
+    Vector<T> sorted_vector(this_size);
+
+    for(size_t i = 0; i < this_size; i++)
+    {
+        sorted_vector[i] = (*this)[rank[i]];
+    }
+
+    return sorted_vector;
+}
+
 
 /// Sum vector+scalar arithmetic operator.
 /// @param scalar Scalar value to be added to this vector.
@@ -4334,13 +7714,12 @@ inline Vector<T> Vector<T>::operator+(const T &scalar) const {
 
   Vector<T> sum(this_size);
 
-  std::transform(this->begin(), this->end(), sum.begin(),
-                 std::bind2nd(std::plus<T>(), scalar));
+  transform(this->begin(), this->end(), sum.begin(),
+                 bind2nd(plus<T>(), scalar));
 
   return (sum);
 }
 
-// Vector<T> operator + (const Vector<T>&) const method
 
 /// Sum vector+vector arithmetic operator.
 /// @param other_vector Vector to be added to this vector.
@@ -4356,27 +7735,26 @@ inline Vector<T> Vector<T>::operator+(const Vector<T> &other_vector) const {
   const size_t other_size = other_vector.size();
 
   if(other_size != this_size) {
-    std::ostringstream buffer;
+    ostringstream buffer;
 
     buffer << "OpenNN Exception: Vector Template.\n"
            << "Vector<T> operator + (const Vector<T>) const.\n"
            << "Size of vectors is " << this_size << " and " << other_size
            << " and they must be the same.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
 #endif
 
   Vector<T> sum(this_size);
 
-  std::transform(this->begin(), this->end(), other_vector.begin(), sum.begin(),
-                 std::plus<T>());
+  transform(this->begin(), this->end(), other_vector.begin(), sum.begin(),
+                 plus<T>());
 
   return (sum);
 }
 
-// Vector<T> operator - (const T&) const method
 
 /// Difference vector-scalar arithmetic operator.
 /// @param scalar Scalar value to be subtracted to this vector.
@@ -4387,13 +7765,12 @@ inline Vector<T> Vector<T>::operator-(const T &scalar) const {
 
   Vector<T> difference(this_size);
 
-  std::transform(this->begin(), this->end(), difference.begin(),
-                 std::bind2nd(std::minus<T>(), scalar));
+  transform(this->begin(), this->end(), difference.begin(),
+                 bind2nd(minus<T>(), scalar));
 
   return (difference);
 }
 
-// Vector<T> operator - (const Vector<T>&) const method
 
 /// Difference vector-vector arithmetic operator.
 /// @param other_vector vector to be subtracted to this vector.
@@ -4409,27 +7786,26 @@ inline Vector<T> Vector<T>::operator-(const Vector<T> &other_vector) const {
   const size_t other_size = other_vector.size();
 
   if(other_size != this_size) {
-    std::ostringstream buffer;
+    ostringstream buffer;
 
     buffer << "OpenNN Exception: Vector Template.\n"
            << "Vector<T> operator - (const Vector<T>&) const.\n"
            << "Size of vectors is " << this_size << " and " << other_size
            << " and they must be the same.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
 #endif
 
   Vector<T> difference(this_size);
 
-  std::transform(this->begin(), this->end(), other_vector.begin(),
-                 difference.begin(), std::minus<T>());
+  transform(this->begin(), this->end(), other_vector.begin(),
+                 difference.begin(), minus<T>());
 
   return (difference);
 }
 
-// Vector<T> operator * (const T&) const method
 
 /// Product vector*scalar arithmetic operator.
 /// @param scalar Scalar value to be multiplied to this vector.
@@ -4439,8 +7815,8 @@ template <class T> Vector<T> Vector<T>::operator*(const T &scalar) const {
 
   Vector<T> product(this_size);
 
-  std::transform(this->begin(), this->end(), product.begin(),
-                 std::bind2nd(std::multiplies<T>(), scalar));
+  transform(this->begin(), this->end(), product.begin(),
+                 bind2nd(multiplies<T>(), scalar));
 
   return (product);
 }
@@ -4461,22 +7837,22 @@ inline Vector<T> Vector<T>::operator*(const Vector<T> &other_vector) const {
   const size_t other_size = other_vector.size();
 
   if(other_size != this_size) {
-    std::ostringstream buffer;
+    ostringstream buffer;
 
     buffer << "OpenNN Exception: Vector Template.\n"
            << "Vector<T> operator * (const Vector<T>&) const.\n"
            << "Size of other vector (" << other_size
            << ") must be equal to size of this vector (" << this_size << ").\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
 #endif
 
   Vector<T> product(this_size);
 
-  std::transform(this->begin(), this->end(), other_vector.begin(),
-                 product.begin(), std::multiplies<T>());
+  transform(this->begin(), this->end(), other_vector.begin(),
+                 product.begin(), multiplies<T>());
 
   return (product);
 }
@@ -4498,14 +7874,14 @@ Matrix<T> Vector<T>::operator*(const Matrix<T> &matrix) const {
   const size_t this_size = this->size();
 
   if(rows_number != this_size) {
-    std::ostringstream buffer;
+    ostringstream buffer;
 
     buffer << "OpenNN Exception: Vector Template.\n"
            << "Vector<T> operator * (const Matrix<T>&) const.\n"
            << "Number of matrix rows (" << rows_number
            << ") must be equal to vector size (" << this_size << ").\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
 #endif
@@ -4521,7 +7897,6 @@ Matrix<T> Vector<T>::operator*(const Matrix<T> &matrix) const {
   return (product);
 }
 
-// Vector<T> dot(const Matrix<T>&) const method
 
 /// Returns the dot product of this vector with a matrix.
 /// The number of rows of the matrix must be equal to the size of the vector.
@@ -4538,13 +7913,13 @@ Vector<double> Vector<T>::dot(const Matrix<T> &matrix) const {
 #ifdef __OPENNN_DEBUG__
 
   if(rows_number != this_size) {
-    std::ostringstream buffer;
+    ostringstream buffer;
 
     buffer << "OpenNN Exception: Vector Template.\n"
            << "Vector<T> dot(const Matrix<T>&) const method.\n"
            << "Matrix number of rows must be equal to vector size.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
 #endif
@@ -4572,7 +7947,6 @@ Vector<double> Vector<T>::dot(const Matrix<T> &matrix) const {
   return (product);
 }
 
-// Vector<T> dot(const Vector<T>&) const method
 
 /// Dot product vector*vector arithmetic operator.
 /// @param other_vector vector to be multiplied to this vector.
@@ -4588,13 +7962,13 @@ inline double Vector<T>::dot(const Vector<double> &other_vector) const {
   const size_t other_size = other_vector.size();
 
   if(other_size != this_size) {
-    std::ostringstream buffer;
+    ostringstream buffer;
 
     buffer << "OpenNN Exception: Vector Template.\n"
            << "Type dot(const Vector<T>&) const method.\n"
            << "Both vector sizes must be the same.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
 #endif
@@ -4631,20 +8005,22 @@ Matrix<T> Vector<T>::direct(const Vector<T> &other_vector) const {
   const size_t other_size = other_vector.size();
 
   if(other_size != this_size) {
-    std::ostringstream buffer;
+    ostringstream buffer;
 
     buffer << "OpenNN Exception: Vector Template.\n"
            << "Matrix<T> direct(const Vector<T>&) const method.\n"
            << "Both vector sizes must be the same.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
 #endif
 
   Matrix<T> direct(this_size, this_size);
 
-  for (size_t i = 0; i < this_size; i++) {
+#pragma omp parallel for if(this_size > 1000)
+
+  for (int i = 0; i < (int)this_size; i++) {
     for (size_t j = 0; j < this_size; j++) {
       direct(i, j) = (*this)[i] * other_vector[j];
     }
@@ -4653,7 +8029,6 @@ Matrix<T> Vector<T>::direct(const Vector<T> &other_vector) const {
   return (direct);
 }
 
-// Vector<T> operator / (const T&) const method
 
 /// Cocient vector/scalar arithmetic operator.
 /// @param scalar Scalar value to be divided to this vector.
@@ -4663,13 +8038,12 @@ template <class T> Vector<T> Vector<T>::operator/(const T &scalar) const {
 
   Vector<T> cocient(this_size);
 
-  std::transform(this->begin(), this->end(), cocient.begin(),
-                 std::bind2nd(std::divides<T>(), scalar));
+  transform(this->begin(), this->end(), cocient.begin(),
+                 bind2nd(divides<T>(), scalar));
 
   return (cocient);
 }
 
-// Vector<T> operator / (const Vector<T>&) const method
 
 /// Cocient vector/vector arithmetic operator.
 /// @param other_vector vector to be divided to this vector.
@@ -4685,21 +8059,21 @@ Vector<T> Vector<T>::operator/(const Vector<T> &other_vector) const {
   const size_t other_size = other_vector.size();
 
   if(other_size != this_size) {
-    std::ostringstream buffer;
+    ostringstream buffer;
 
     buffer << "OpenNN Exception: Vector Template.\n"
            << "Vector<T> operator / (const Vector<T>&) const.\n"
            << "Both vector sizes must be the same.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
 #endif
 
   Vector<T> cocient(this_size);
 
-  std::transform(this->begin(), this->end(), other_vector.begin(),
-                 cocient.begin(), std::divides<T>());
+  transform(this->begin(), this->end(), other_vector.begin(),
+                 cocient.begin(), divides<T>());
 
   return (cocient);
 }
@@ -4732,13 +8106,13 @@ template <class T> void Vector<T>::operator+=(const Vector<T> &other_vector) {
   const size_t other_size = other_vector.size();
 
   if(other_size != this_size) {
-    std::ostringstream buffer;
+    ostringstream buffer;
 
     buffer << "OpenNN Exception: Vector Template.\n"
            << "void operator += (const Vector<T>&).\n"
            << "Both vector sizes must be the same.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
 #endif
@@ -4776,13 +8150,13 @@ template <class T> void Vector<T>::operator-=(const Vector<T> &other_vector) {
   const size_t other_size = other_vector.size();
 
   if(other_size != this_size) {
-    std::ostringstream buffer;
+    ostringstream buffer;
 
     buffer << "OpenNN Exception: Vector Template.\n"
            << "void operator -= (const Vector<T>&).\n"
            << "Both vector sizes must be the same.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
 #endif
@@ -4820,13 +8194,13 @@ template <class T> void Vector<T>::operator*=(const Vector<T> &other_vector) {
   const size_t other_size = other_vector.size();
 
   if(other_size != this_size) {
-    std::ostringstream buffer;
+    ostringstream buffer;
 
     buffer << "OpenNN Exception: Vector Template.\n"
            << "void operator *= (const Vector<T>&).\n"
            << "Both vector sizes must be the same.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
 #endif
@@ -4864,13 +8238,13 @@ template <class T> void Vector<T>::operator/=(const Vector<T> &other_vector) {
   const size_t other_size = other_vector.size();
 
   if(other_size != this_size) {
-    std::ostringstream buffer;
+    ostringstream buffer;
 
     buffer << "OpenNN Exception: Vector Template.\n"
            << "void operator /= (const Vector<T>&).\n"
            << "Both vector sizes must be the same.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
 #endif
@@ -4880,29 +8254,332 @@ template <class T> void Vector<T>::operator/=(const Vector<T> &other_vector) {
   }
 }
 
-// void filter_positive(void) method
 
 /// Sets all the negative elements in the vector to zero.
 
-template <class T> void Vector<T>::filter_positive(void) {
+template <class T>
+Vector<T> Vector<T>::filter_positive(void) const
+{
+  Vector<T> new_vector(*this);
+
   for (size_t i = 0; i < this->size(); i++) {
-    if((*this)[i] < 0) {
-      (*this)[i] = 0;
+    if(new_vector[i] < 0) {
+      new_vector[i] = 0;
     }
   }
+
+  return new_vector;
 }
 
-// void filter_negative(void) method
 
 /// Sets all the positive elements in the vector to zero.
 
-template <class T> void Vector<T>::filter_negative(void) {
+template <class T> Vector<T> Vector<T>::filter_negative(void) const {
+    Vector<T> new_vector(*this);
   for (size_t i = 0; i < this->size(); i++) {
-    if((*this)[i] > 0) {
-      (*this)[i] = 0;
+    if(new_vector[i] > 0) {
+      new_vector[i] = 0;
     }
   }
 }
+
+
+template <class T>
+size_t Vector<T>::count_dates(const size_t& start_day, const size_t& start_month, const size_t& start_year,
+                              const size_t& end_day, const size_t& end_month, const size_t& end_year) const
+{
+    struct tm start = {0};
+
+    start.tm_mday = (int)start_day;
+    start.tm_mon = (int)start_month - 1;
+    start.tm_year = (int)start_year - 1900;
+
+    const time_t start_date = mktime(&start) + 3600*24;
+
+    struct tm end = {0};
+
+    end.tm_mday = (int)end_day;
+    end.tm_mon = (int)end_month - 1;
+    end.tm_year = (int)end_year - 1900;
+
+    const time_t end_date = mktime(&end) + 3600*24;
+
+    size_t count = 0;
+
+    for (size_t i = 0; i < this->size(); i++)
+    {
+        if ((*this)[i] >= start_date && (*this)[i] <= end_date)
+        {
+            count++;
+        }
+    }
+
+    return (count);
+}
+
+
+/// Returns the indices of the timestamp elements which fall between two given dates.
+/// @param start_month Start month.
+/// @param start_year Start year.
+/// @param end_month End month.
+/// @param end_year End year.
+
+template <class T>
+Vector<size_t> Vector<T>::filter_dates(const size_t& start_day, const size_t& start_month, const size_t& start_year,
+                                       const size_t& end_day, const size_t& end_month, const size_t& end_year) const
+{
+    const size_t new_size = count_dates(start_day, start_month, start_year, end_day, end_month, end_year);
+
+    Vector<size_t> indices(new_size);
+
+    struct tm start = {0};
+    start.tm_mday = (int)start_day;
+    start.tm_mon = (int)start_month - 1;
+    start.tm_year = (int)start_year - 1900;
+
+    const time_t start_date = mktime(&start) + 3600*24;
+
+    struct tm end = {0};
+    end.tm_mday = (int)end_day;
+    end.tm_mon = (int)end_month - 1;
+    end.tm_year = (int)end_year - 1900;
+
+    const time_t end_date = mktime(&end) + 3600*24;
+
+    size_t index = 0;
+
+    for (size_t i = 0; i < this->size(); i++)
+    {
+        if ((*this)[i] >= start_date && (*this)[i] <= end_date)
+        {
+            indices[index] = i;
+            index++;
+        }
+    }
+
+    return (indices);
+}
+
+
+/// Calculates the outliers in the vector using the Tukey's algorithm,
+/// and returns the indices of that elements.
+/// @param cleaning_parameter Cleaning parameter in the Tukey's method. The default value is 1.5.
+
+template <class T>
+Vector<size_t> Vector<T>::calculate_Tukey_outliers(const double& cleaning_parameter) const
+{
+    Vector<size_t> outliers_indices;
+
+    if(this->is_binary())
+    {
+        return outliers_indices;
+    }
+
+    const size_t this_size = this->size();
+
+    Vector<double> box_plot;
+
+    double interquartile_range;
+
+    box_plot = calculate_box_plot();
+
+    if(box_plot[3] == box_plot[1])
+    {
+        return outliers_indices;
+    }
+    else
+    {
+        interquartile_range = abs((box_plot[3] - box_plot[1]));
+    }
+
+    for(size_t i = 0; i < this_size; i++)
+    {
+        if((*this)[i] < (box_plot[1] - cleaning_parameter*interquartile_range) ||
+           (*this)[i] > (box_plot[3] + cleaning_parameter*interquartile_range))
+        {
+            outliers_indices.push_back(i);
+        }
+    }
+
+    return(outliers_indices);
+}
+
+
+template <class T>
+Vector<size_t> Vector<T>::calculate_Tukey_outliers_iterative(const double& cleaning_parameter) const
+{
+    const Vector<T> id(1,1,this->size());
+
+    Matrix<T> data(this->size(),2);
+
+    data.set_column(0,id);
+    data.set_column(1,(*this));
+
+    Vector<T> id_to_remove;
+
+    for(;;)
+    {
+        const Vector<T> iteration_id = data.get_column(0);
+
+        const Vector<size_t> iteration_indices = data.get_column(1).calculate_Tukey_outliers(cleaning_parameter);
+
+        if(iteration_indices.empty()) break;
+
+        data = data.delete_rows(iteration_indices);
+
+        id_to_remove = id_to_remove.assemble(iteration_id.get_subvector(iteration_indices));
+    }
+
+    const Vector<size_t> tukey_indices = id.calculate_equal_to_indices(id_to_remove).to_size_t_vector();
+
+    return tukey_indices;
+}
+
+
+template <class T>
+Vector<size_t> Vector<T>::calculate_histogram_outliers(const size_t& bins_number, const size_t& minimum_frequency) const
+{
+    Vector<size_t> indices;
+
+    if(this->is_binary()) return indices;
+
+    const Histogram<T> histogram = calculate_histogram(bins_number);
+
+    for(size_t i = 0; i < bins_number; i++)
+    {
+        if(histogram.frequencies[i] <= minimum_frequency)
+        {
+            const Vector<size_t> bin_indices = calculate_between_indices(histogram.minimums[i], histogram.maximums[i]);
+
+            indices = indices.assemble(bin_indices);
+        }
+    }
+
+    return(indices);
+}
+
+
+template <class T>
+Vector<size_t> Vector<T>::calculate_histogram_outliers_iterative(const size_t& bins_number, const size_t& minimum_frequency) const
+{
+    const Vector<T> id(1,1,this->size());
+
+    Matrix<T> data(this->size(),2);
+
+    data.set_column(0,id);
+    data.set_column(1,(*this));
+
+    Vector<T> id_to_remove;
+
+    for(;;)
+    {
+        const Vector<T> iteration_id = data.get_column(0);
+
+        const Vector<size_t> iteration_indices = data.get_column(1).calculate_histogram_outliers(bins_number, minimum_frequency);
+
+        if(iteration_indices.empty()) break;
+
+        data = data.delete_rows(iteration_indices);
+
+        id_to_remove = id_to_remove.assemble(iteration_id.get_subvector(iteration_indices));
+
+    }
+
+    const Vector<size_t> histogram_indices = id.calculate_equal_to_indices(id_to_remove).to_size_t_vector();
+
+    return histogram_indices;
+}
+
+/*
+template <class T>
+Vector<size_t> Vector<T>::calculate_histogram_outliers(const size_t& bins_number, const double& minimum_percentage) const
+{
+    Vector<size_t> indices;
+
+    if(this->is_binary()) return indices;
+
+    const Histogram<T> histogram = calculate_histogram(bins_number);
+
+    const size_t total = (*this).size();
+
+    Vector<double> percentages (bins_number);
+
+    for (size_t i  = 0; i < bins_number; i++)
+    {
+        percentages[i] = (double)histogram.frequencies[i] * 100.0 / (double)total;
+    }
+
+    for(size_t i = 0; i < bins_number; i++)
+    {
+        if(percentages[i] <= minimum_percentage)
+        {
+            const Vector<size_t> bin_indices = calculate_between_indices(histogram.minimums[i], histogram.maximums[i]);
+
+            indices = indices.assemble(bin_indices);
+        }
+    }
+
+    return(indices);
+}
+
+
+template <class T>
+Vector<size_t> Vector<T>::calculate_histogram_outliers_iterative(const size_t& bins_number, const double& minimum_percentage) const
+{
+    const Vector<T> id(1,1,this->size());
+
+    Matrix<T> data(this->size(),2);
+
+    cout << "1" << endl;
+
+    data.set_column(0,id);
+    data.set_column(1,(*this));
+
+    Vector<T> id_to_remove;
+
+    cout << "2" << endl;
+
+    for(;;)
+    {
+        const Vector<T> iteration_id = data.get_column(0);
+
+        const Vector<size_t> iteration_indices = data.get_column(1).calculate_histogram_outliers(bins_number, minimum_percentage);
+
+        if(iteration_indices.empty()) break;
+
+        cout << data.get_rows_number() << "    " << iteration_indices.size() << endl;
+
+        data = data.delete_rows(iteration_indices);
+
+        id_to_remove = id_to_remove.assemble(iteration_id.get_subvector(iteration_indices));
+    }
+
+    cout << "3" << endl;
+
+    const Vector<size_t> histogram_indices = id.calculate_equal_to_indices(id_to_remove).to_size_t_vector();
+
+    return histogram_indices;
+}
+*/
+
+template <class T>
+Vector<T> Vector<T>::calculate_scaled_minimum_maximum() const
+{
+    const double minimum = calculate_minimum();
+    const double maximum = calculate_maximum();
+
+    const size_t this_size = this->size();
+
+    Vector<T> new_vector(this_size);
+
+    for (size_t i = 0; i < this_size; i++)
+    {
+      new_vector[i] = 2.0 * ((*this)[i] - minimum) / (maximum - minimum) - 1.0;
+    }
+
+    return new_vector;
+}
+
 
 // void scale_minimum_maximum(const T&, const T&) method
 
@@ -4997,133 +8674,103 @@ Statistics<T> Vector<T>::scale_mean_standard_deviation(void) {
   return (statistics);
 }
 
-// void scale_minimum_maximum(const Vector<T>&, const Vector<T>&) method
+// void scale_standard_deviation(const T&, const T&) method
 
-/// Scales the vectir elements with given minimum and maximum values.
-/// It updates the data in the vector.
-/// The size of the minimum and maximum vectors must be equal to the size of the
-/// vector.
-/// @param minimum Minimum values.
-/// @param maximum Maximum values.
+/// Normalizes the elements of this vector using standard deviationmethod.
+/// @param standard_deviation Standard deviation value for the scaling.
 
 template <class T>
-void Vector<T>::scale_minimum_maximum(const Vector<T> &minimum,
-                                      const Vector<T> &maximum) {
+void Vector<T>::scale_standard_deviation(const T &standard_deviation) {
+  if(standard_deviation < 1.0e-99) {
+    return;
+  }
+
   const size_t this_size = this->size();
 
-#ifdef __OPENNN_DEBUG__
-
-  const size_t minimum_size = minimum.size();
-
-  if(minimum_size != this_size) {
-    std::ostringstream buffer;
-
-    buffer << "OpenNN Exception: Vector template."
-           << "void scale_minimum_maximum(const Vector<T>&, const Vector<T>&) "
-              "method.\n"
-           << "Size of minimum vector must be equal to size.\n";
-
-    throw std::logic_error(buffer.str());
-  }
-
-  const size_t maximum_size = maximum.size();
-
-  if(maximum_size != this_size) {
-    std::ostringstream buffer;
-
-    buffer << "OpenNN Exception: Vector template."
-           << "void scale_minimum_maximum(const Vector<T>&, const Vector<T>&) "
-              "method.\n"
-           << "Size of maximum vector must be equal to size.\n";
-
-    throw std::logic_error(buffer.str());
-  }
-
-#endif
-
-  // Rescale data
-
   for (size_t i = 0; i < this_size; i++) {
-    if(maximum[i] - minimum[i] < 1e-99) {
-      std::cout << "OpenNN Warning: Vector class.\n"
-                << "void scale_minimum_maximum(const Vector<T>&, const "
-                   "Vector<T>&) method.\n"
-                << "Minimum and maximum values of variable " << i
-                << " are equal.\n"
-                << "Those elements won't be scaled.\n";
-
-      // Do nothing
-    } else {
-      (*this)[i] =
-          2.0 * ((*this)[i] - minimum[i]) / (maximum[i] - minimum[i]) - 1.0;
-    }
+    (*this)[i] = ((*this)[i]) / standard_deviation;
   }
 }
 
-// void scale_mean_standard_deviation(const Vector<T>&, const Vector<T>&) method
 
-/// Scales the vector elements with given mean and standard deviation values.
+// void scale_standard_deviation(const Statistics<T>&) method
+
+/// Normalizes the elements of this vector using standard deviation method.
+/// @param statistics Statistics structure,
+/// which contains standard deviation value for the scaling.
+
+template <class T>
+
+void Vector<T>::scale_standard_deviation(const Statistics<T> &statistics) {
+  scale_standard_deviation(statistics.standard_deviation);
+}
+
+
+// Statistics<T> scale_standard_deviation(void) method
+
+/// Normalizes the elements of the vector with the standard deviation method.
+/// The values used are those calculated from the vector.
+/// It also returns the statistics from the vector.
+
+template <class T>
+Statistics<T> Vector<T>::scale_standard_deviation(void) {
+  const Statistics<T> statistics = calculate_statistics();
+
+  scale_standard_deviation(statistics);
+
+  return (statistics);
+}
+
+
+// void scale_standard_deviation(const Vector<T>&, const Vector<T>&) method
+
+/// Scales the vector elements with given standard deviation values.
 /// It updates the data in the vector.
-/// The size of the mean and standard deviation vectors must be equal to the
+/// The size of the standard deviation vector must be equal to the
 /// size of the vector.
-/// @param mean Mean values.
 /// @param standard_deviation Standard deviation values.
 
 template <class T>
 void
-Vector<T>::scale_mean_standard_deviation(const Vector<T> &mean,
-                                         const Vector<T> &standard_deviation) {
+Vector<T>::scale_standard_deviation(const Vector<T> &standard_deviation) {
   const size_t this_size = this->size();
 
 #ifdef __OPENNN_DEBUG__
 
-  const size_t mean_size = mean.size();
-
-  if(mean_size != this_size) {
-    std::ostringstream buffer;
-
-    buffer << "OpenNN Exception: Vector template."
-           << "void scale_mean_standard_deviation(const Vector<T>&, const "
-              "Vector<T>&) method.\n"
-           << "Size of mean vector must be equal to size.\n";
-
-    throw std::logic_error(buffer.str());
-  }
-
   const size_t standard_deviation_size = standard_deviation.size();
 
   if(standard_deviation_size != this_size) {
-    std::ostringstream buffer;
+    ostringstream buffer;
 
     buffer << "OpenNN Exception: Vector template."
-           << "void scale_mean_standard_deviation(const Vector<T>&, const "
+           << "void scale_standard_deviation(const Vector<T>&, const "
               "Vector<T>&) method.\n"
            << "Size of standard deviation vector must be equal to size.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
 #endif
 
   // Rescale data
 
-  for (size_t i = 0; i < this_size; i++) {
+#pragma omp parallel for
+
+  for (int i = 0; i < this_size; i++) {
     if(standard_deviation[i] < 1e-99) {
-      std::cout << "OpenNN Warning: Vector class.\n"
-                << "void scale_mean_standard_deviation(const Vector<T>&, const "
-                   "Vector<T>&) method.\n"
-                << "Standard deviation of variable " << i << " is zero.\n"
-                << "Those elements won't be scaled.\n";
+//      cout << "OpenNN Warning: Vector class.\n"
+//                << "void scale_mean_standard_deviation(const Vector<T>&, const "
+//                   "Vector<T>&) method.\n"
+//                << "Standard deviation of variable " << i << " is zero.\n"
+//                << "Those elements won't be scaled.\n";
 
       // Do nothing
     } else {
-      (*this)[i] = ((*this)[i] - mean[i]) / standard_deviation[i];
+      (*this)[i] = ((*this)[i]) / standard_deviation[i];
     }
   }
 }
 
-// Vector<T> calculate_scaled_minimum_maximum(const Vector<T>&, const
-// Vector<T>&) const method
 
 /// Returns a vector with the scaled elements of this vector acording to the
 /// minimum and maximum method.
@@ -5133,8 +8780,7 @@ Vector<T>::scale_mean_standard_deviation(const Vector<T> &mean,
 /// @param maximum Maximum values.
 
 template <class T>
-Vector<T>
-Vector<T>::calculate_scaled_minimum_maximum(const Vector<T> &minimum,
+Vector<T> Vector<T>::calculate_scaled_minimum_maximum(const Vector<T> &minimum,
                                             const Vector<T> &maximum) const {
   const size_t this_size = this->size();
 
@@ -5143,27 +8789,27 @@ Vector<T>::calculate_scaled_minimum_maximum(const Vector<T> &minimum,
   const size_t minimum_size = minimum.size();
 
   if(minimum_size != this_size) {
-    std::ostringstream buffer;
+    ostringstream buffer;
 
     buffer << "OpenNN Exception: Vector template."
            << "Vector<T> calculate_scaled_minimum_maximum(const Vector<T>&, "
               "const Vector<T>&) const method.\n"
            << "Size of minimum vector must be equal to size.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
   const size_t maximum_size = maximum.size();
 
   if(maximum_size != this_size) {
-    std::ostringstream buffer;
+    ostringstream buffer;
 
     buffer << "OpenNN Exception: Vector template."
            << "Vector<T> calculate_scaled_minimum_maximum(const Vector<T>&, "
               "const Vector<T>&) const method.\n"
            << "Size of maximum vector must be equal to size.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
 #endif
@@ -5174,7 +8820,7 @@ Vector<T>::calculate_scaled_minimum_maximum(const Vector<T> &minimum,
 
   for (size_t i = 0; i < this_size; i++) {
     if(maximum[i] - minimum[i] < 1e-99) {
-      std::cout << "OpenNN Warning: Vector class.\n"
+      cout << "OpenNN Warning: Vector class.\n"
                 << "Vector<T> calculate_scaled_minimum_maximum(const "
                    "Vector<T>&, const Vector<T>&) const method.\n"
                 << "Minimum and maximum values of variable " << i
@@ -5191,8 +8837,6 @@ Vector<T>::calculate_scaled_minimum_maximum(const Vector<T> &minimum,
   return (scaled_minimum_maximum);
 }
 
-// Vector<T> calculate_scaled_mean_standard_deviation(const Vector<T>&, const
-// Vector<T>&) const method
 
 /// Returns a vector with the scaled elements of this vector acording to the
 /// mean and standard deviation method.
@@ -5208,7 +8852,7 @@ Vector<T> Vector<T>::calculate_scaled_mean_standard_deviation(
 
 #ifdef __OPENNN_DEBUG__
 
-  std::ostringstream buffer;
+  ostringstream buffer;
 
   const size_t mean_size = mean.size();
 
@@ -5218,7 +8862,7 @@ Vector<T> Vector<T>::calculate_scaled_mean_standard_deviation(
               "Vector<T>&, const Vector<T>&) const method.\n"
            << "Size of mean vector must be equal to size.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
   const size_t standard_deviation_size = standard_deviation.size();
@@ -5229,7 +8873,7 @@ Vector<T> Vector<T>::calculate_scaled_mean_standard_deviation(
               "Vector<T>&, const Vector<T>&) const method.\n"
            << "Size of standard deviation vector must be equal to size.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
 #endif
@@ -5238,7 +8882,7 @@ Vector<T> Vector<T>::calculate_scaled_mean_standard_deviation(
 
   for (size_t i = 0; i < this_size; i++) {
     if(standard_deviation[i] < 1e-99) {
-      std::cout << "OpenNN Warning: Vector template.\n"
+      cout << "OpenNN Warning: Vector template.\n"
                 << "Vector<T> calculate_scaled_mean_standard_deviation(const "
                    "Vector<T>&, const Vector<T>&) const method.\n"
                 << "Standard deviation of variable " << i << " is zero.\n"
@@ -5254,8 +8898,55 @@ Vector<T> Vector<T>::calculate_scaled_mean_standard_deviation(
   return (scaled_mean_standard_deviation);
 }
 
-// Vector<T> calculate_unscaled_minimum_maximum(const Vector<T>&, const
-// Vector<T>&) const method
+
+/// Returns a vector with the scaled elements of this vector acording to the
+/// standard deviation method.
+/// The size of the standard deviation vector must be equal to the
+/// size of the vector.
+/// @param standard_deviation Standard deviation values.
+
+template <class T>
+Vector<T> Vector<T>::calculate_scaled_standard_deviation(const Vector<T> &standard_deviation) const {
+  const size_t this_size = this->size();
+
+#ifdef __OPENNN_DEBUG__
+
+  const size_t standard_deviation_size = standard_deviation.size();
+
+  if(standard_deviation_size != this_size) {
+
+      ostringstream buffer;
+
+    buffer << "OpenNN Exception: Vector template.\n"
+           << "Vector<T> calculate_scaled_mean_standard_deviation(const "
+              "Vector<T>&, const Vector<T>&) const method.\n"
+           << "Size of standard deviation vector must be equal to size.\n";
+
+    throw logic_error(buffer.str());
+  }
+
+#endif
+
+  Vector<T> scaled_standard_deviation(this_size);
+
+  for (size_t i = 0; i < this_size; i++) {
+    if(standard_deviation[i] < 1e-99) {
+      cout << "OpenNN Warning: Vector template.\n"
+                << "Vector<T> calculate_scaled_mean_standard_deviation(const "
+                   "Vector<T>&, const Vector<T>&) const method.\n"
+                << "Standard deviation of variable " << i << " is zero.\n"
+                << "Those elements won't be scaled.\n";
+
+      scaled_standard_deviation = (*this)[i];
+    } else {
+      scaled_standard_deviation[i] =
+          (*this)[i] * standard_deviation[i];
+    }
+  }
+
+  return (scaled_standard_deviation);
+}
+
 
 /// Returns a vector with the unscaled elements of this vector acording to the
 /// minimum and maximum method.
@@ -5275,27 +8966,27 @@ Vector<T>::calculate_unscaled_minimum_maximum(const Vector<T> &minimum,
   const size_t minimum_size = minimum.size();
 
   if(minimum_size != this_size) {
-    std::ostringstream buffer;
+    ostringstream buffer;
 
     buffer << "OpenNN Exception: Vector template."
            << "Vector<T> calculate_unscaled_minimum_maximum(const Vector<T>&, "
               "const Vector<T>&) const method.\n"
            << "Size of minimum vector must be equal to size.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
   const size_t maximum_size = maximum.size();
 
   if(maximum_size != this_size) {
-    std::ostringstream buffer;
+    ostringstream buffer;
 
     buffer << "OpenNN Exception: Vector template."
            << "Vector<T> calculate_unscaled_minimum_maximum(const Vector<T>&, "
               "const Vector<T>&) const method.\n"
            << "Size of maximum vector must be equal to size.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
 #endif
@@ -5304,7 +8995,7 @@ Vector<T>::calculate_unscaled_minimum_maximum(const Vector<T> &minimum,
 
   for (size_t i = 0; i < this_size; i++) {
     if(maximum[i] - minimum[i] < 1e-99) {
-      std::cout << "OpenNN Warning: Vector template.\n"
+      cout << "OpenNN Warning: Vector template.\n"
                 << "Vector<T> calculate_unscaled_minimum_maximum(const "
                    "Vector<T>&, const Vector<T>&) const method.\n"
                 << "Minimum and maximum values of variable " << i
@@ -5321,8 +9012,6 @@ Vector<T>::calculate_unscaled_minimum_maximum(const Vector<T> &minimum,
   return (unscaled_minimum_maximum);
 }
 
-// Vector<T> calculate_unscaled_mean_standard_deviation(const Vector<T>&, const
-// Vector<T>&) const method
 
 /// Returns a vector with the unscaled elements of this vector acording to the
 /// mean and standard deviation method.
@@ -5341,27 +9030,27 @@ Vector<T> Vector<T>::calculate_unscaled_mean_standard_deviation(
   const size_t mean_size = mean.size();
 
   if(mean_size != this_size) {
-    std::ostringstream buffer;
+    ostringstream buffer;
 
     buffer << "OpenNN Exception: Vector template."
            << "Vector<T> calculate_unscaled_mean_standard_deviation(const "
               "Vector<T>&, const Vector<T>&) const method.\n"
            << "Size of mean vector must be equal to size.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
   const size_t standard_deviation_size = standard_deviation.size();
 
   if(standard_deviation_size != this_size) {
-    std::ostringstream buffer;
+    ostringstream buffer;
 
     buffer << "OpenNN Exception: Vector template.\n"
            << "Vector<T> calculate_unscaled_mean_standard_deviation(const "
               "Vector<T>&, const Vector<T>&) const method.\n"
            << "Size of standard deviation vector must be equal to size.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
 #endif
@@ -5370,7 +9059,7 @@ Vector<T> Vector<T>::calculate_unscaled_mean_standard_deviation(
 
   for (size_t i = 0; i < this_size; i++) {
     if(standard_deviation[i] < 1e-99) {
-      std::cout << "OpenNN Warning: Vector template.\n"
+      cout << "OpenNN Warning: Vector template.\n"
                 << "Vector<T> calculate_unscaled_mean_standard_deviation(const "
                    "Vector<T>&, const Vector<T>&) const method.\n"
                 << "Standard deviation of variable " << i << " is zero.\n"
@@ -5405,34 +9094,34 @@ void Vector<T>::unscale_minimum_maximum(const Vector<T> &minimum,
   const size_t minimum_size = minimum.size();
 
   if(minimum_size != this_size) {
-    std::ostringstream buffer;
+    ostringstream buffer;
 
     buffer << "OpenNN Exception: Vector template."
            << "void unscale_minimum_maximum(const Vector<T>&, const "
               "Vector<T>&) method.\n"
            << "Size of minimum vector must be equal to size.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
   const size_t maximum_size = maximum.size();
 
   if(maximum_size != this_size) {
-    std::ostringstream buffer;
+    ostringstream buffer;
 
     buffer << "OpenNN Exception: Vector template."
            << "void unscale_minimum_maximum(const Vector<T>&, const "
               "Vector<T>&) method.\n"
            << "Size of maximum vector must be equal to size.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
 #endif
 
   for (size_t i = 0; i < this_size; i++) {
     if(maximum[i] - minimum[i] < 1e-99) {
-      std::cout << "OpenNN Warning: Vector template.\n"
+      cout << "OpenNN Warning: Vector template.\n"
                 << "void unscale_minimum_maximum(const Vector<T>&, const "
                    "Vector<T>&) method.\n"
                 << "Minimum and maximum values of variable " << i
@@ -5467,34 +9156,34 @@ void Vector<T>::unscale_mean_standard_deviation(
   const size_t mean_size = mean.size();
 
   if(mean_size != this_size) {
-    std::ostringstream buffer;
+    ostringstream buffer;
 
     buffer << "OpenNN Exception: Vector template."
            << "void unscale_mean_standard_deviation(const Vector<T>&, const "
               "Vector<T>&) method.\n"
            << "Size of mean vector must be equal to size.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
   const size_t standard_deviation_size = standard_deviation.size();
 
   if(standard_deviation_size != this_size) {
-    std::ostringstream buffer;
+    ostringstream buffer;
 
     buffer << "OpenNN Exception: Vector template.\n"
            << "void unscale_mean_standard_deviation(const Vector<T>&, const "
               "Vector<T>&) method.\n"
            << "Size of standard deviation vector must be equal to size.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
 #endif
 
   for (size_t i = 0; i < this_size; i++) {
     if(standard_deviation[i] < 1e-99) {
-      std::cout << "OpenNN Warning: Vector template.\n"
+      cout << "OpenNN Warning: Vector template.\n"
                 << "void unscale_mean_standard_deviation(const Vector<T>&, "
                    "const Vector<T>&) method.\n"
                 << "Standard deviation of variable " << i << " is zero.\n"
@@ -5507,34 +9196,66 @@ void Vector<T>::unscale_mean_standard_deviation(
   }
 }
 
-// Matrix<T> arrange_diagonal_matrix(void) const method
 
 /// Returns a squared matrix in which the entries outside the main diagonal are
 /// all zero.
 /// The elements in the diagonal are the elements in this vector.
-/// @todo
 
-template <class T> Matrix<T> Vector<T>::arrange_diagonal_matrix(void) const {
+template <class T> Matrix<T> Vector<T>::to_diagonal_matrix(void) const
+{
   const size_t this_size = this->size();
 
-  Matrix<T> matrix = new Matrix<T>(this_size, this_size, 0.0);
+  Matrix<T> matrix(this_size, this_size, 0.0);
 
-  for (size_t i = 0; i < this_size; i++) {
-    matrix(i, i) = (*this)[i];
-  }
+  matrix.set_diagonal(*this);
+
+//  for (size_t i = 0; i < this_size; i++)
+//  {
+//    matrix(i, i) = (*this)[i];
+//  }
 
   return (matrix);
 }
 
-// Vector<T> arrange_subvector(const Vector<size_t>&) const
+
+template <class T>
+Vector<T> Vector<T>::get_subvector(const size_t& first_index, const size_t& last_index) const
+{
+#ifdef __OPENNN_DEBUG__
+
+  const size_t this_size = this->size();
+
+  if(last_index >= this_size || first_index >= this_size) {
+      ostringstream buffer;
+
+      buffer << "OpenNN Exception: Vector Template.\n"
+             << "Vector<T> get_subvector(const size_t&, const size_t&) const method.\n"
+             << "Index is equal or greater than this size.\n";
+
+      throw logic_error(buffer.str());
+  }
+
+#endif
+
+  Vector<T> subvector(last_index-first_index + 1);
+
+  for (size_t i = first_index; i < last_index+1; i++) {
+    subvector[i-first_index] = (*this)[i];
+  }
+
+  return (subvector);
+}
 
 /// Returns another vector whose elements are given by some elements of this
 /// vector.
 /// @param indices Indices of this vector whose elements are required.
 
 template <class T>
-Vector<T> Vector<T>::arrange_subvector(const Vector<size_t> &indices) const {
+Vector<T> Vector<T>::get_subvector(const Vector<size_t> &indices) const {
   const size_t new_size = indices.size();
+
+  if(new_size == 0) return Vector<T>();
+
 
 // Control sentence (if debug)
 
@@ -5544,13 +9265,13 @@ Vector<T> Vector<T>::arrange_subvector(const Vector<size_t> &indices) const {
 
   for (size_t i = 0; i < new_size; i++) {
     if(indices[i] > this_size) {
-      std::ostringstream buffer;
+      ostringstream buffer;
 
       buffer << "OpenNN Exception: Vector Template.\n"
-             << "Vector<T> arrange_subvector(const Vector<T>&) const method.\n"
+             << "Vector<T> get_subvector(const Vector<T>&) const method.\n"
              << "Index is equal or greater than this size.\n";
 
-      throw std::logic_error(buffer.str());
+      throw logic_error(buffer.str());
     }
   }
 
@@ -5565,14 +9286,21 @@ Vector<T> Vector<T>::arrange_subvector(const Vector<size_t> &indices) const {
   return (subvector);
 }
 
-// Vector<T> arrange_subvector_first(const size_t&) const method
+
+template <class T>
+Vector<T> Vector<T>::get_subvector(const Vector<bool>& selection) const
+{
+    const Vector<size_t> indices = selection.calculate_equal_to_indices(true);
+
+    return(get_subvector(indices));
+}
 
 /// Returns a vector with the first n elements of this vector.
 /// @param elements_number Size of the new vector.
 
 template <class T>
 Vector<T>
-Vector<T>::arrange_subvector_first(const size_t &elements_number) const {
+Vector<T>::get_first(const size_t &elements_number) const {
 // Control sentence (if debug)
 
 #ifdef __OPENNN_DEBUG__
@@ -5580,13 +9308,13 @@ Vector<T>::arrange_subvector_first(const size_t &elements_number) const {
   const size_t this_size = this->size();
 
   if(elements_number > this_size) {
-    std::ostringstream buffer;
+    ostringstream buffer;
 
     buffer << "OpenNN Exception: Vector Template.\n"
-           << "Vector<T> arrange_subvector_first(const size_t&) const method.\n"
+           << "Vector<T> get_first(const size_t&) const method.\n"
            << "Number of elements must be equal or greater than this size.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
 #endif
@@ -5600,28 +9328,26 @@ Vector<T>::arrange_subvector_first(const size_t &elements_number) const {
   return (subvector);
 }
 
-// Vector<T> arrange_subvector_last(const size_t&) const method
 
 /// Returns a vector with the last n elements of this vector.
 /// @param elements_number Size of the new vector.
 
 template <class T>
 Vector<T>
-Vector<T>::arrange_subvector_last(const size_t &elements_number) const {
+Vector<T>::get_last(const size_t &elements_number) const {
   const size_t this_size = this->size();
 
 // Control sentence (if debug)
-
 #ifdef __OPENNN_DEBUG__
 
   if(elements_number > this_size) {
-    std::ostringstream buffer;
+    ostringstream buffer;
 
     buffer << "OpenNN Exception: Vector Template.\n"
-           << "Vector<T> arrange_subvector_last(const size_t&) const method.\n"
+           << "Vector<T> get_last(const size_t&) const method.\n"
            << "Number of elements must be equal or greater than this size.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
 #endif
@@ -5635,19 +9361,85 @@ Vector<T>::arrange_subvector_last(const size_t &elements_number) const {
   return (subvector);
 }
 
-// void load(const std::string&) method
+
+/// Returns a vector with the integers of the vector.
+/// @param maximum_integers Maximum number of integers to arrange.
+
+template <class T> Vector<T> Vector<T>::get_integer_elements(const size_t& maximum_integers) const {
+
+    const size_t this_size = this->size();
+
+    const size_t integers_number = this->count_integers(maximum_integers);
+
+    Vector<T> integers(integers_number);
+    size_t index = 0;
+
+    for(size_t i = 0; i < this_size; i++)
+    {
+        if(!integers.contains((*this)[i]))
+        {
+            integers[index] = (*this)[i];
+            index++;
+
+            if(index > integers_number)
+            {
+                break;
+            }
+        }
+    }
+
+    return integers;
+}
+
+
+/// Returns a vector with the integers of the vector.
+/// @param missing_indices Indices of the instances with missing values.
+/// @param maximum_integers Maximum number of integers to arrange.
+
+template <class T> Vector<T> Vector<T>::get_integer_elements_missing_values(const Vector<size_t>& missing_indices, const size_t& maximum_integers) const {
+
+    const size_t this_size = this->size();
+
+    const size_t integers_number = this->count_integers_missing_values(missing_indices, maximum_integers);
+
+    Vector<T> integers(integers_number);
+    size_t index = 0;
+
+    for(size_t i = 0; i < this_size; i++)
+    {
+        if(!missing_indices.contains(i))
+        {
+            if(!integers.contains((*this)[i]))
+            {
+                integers[index] = (*this)[i];
+                index++;
+
+                if(index > integers_number)
+                {
+                    break;
+                }
+            }
+        }
+    }
+
+    return integers;
+}
+
+
+
+// void load(const string&) method
 
 /// Loads the members of a vector from an data file.
 /// Please be careful with the file format, which is specified in the OpenNN
 /// manual.
 /// @param file_name Name of vector file.
 
-template <class T> void Vector<T>::load(const std::string &file_name) {
-  std::ifstream file(file_name.c_str());
+template <class T> void Vector<T>::load(const string &file_name) {
+  ifstream file(file_name.c_str());
 
-  std::stringstream buffer;
+  stringstream buffer;
 
-  std::string line;
+  string line;
 
   while (file.good()) {
     getline(file, line);
@@ -5655,17 +9447,17 @@ template <class T> void Vector<T>::load(const std::string &file_name) {
     buffer << line;
   }
 
-  std::istream_iterator<std::string> it(buffer);
-  std::istream_iterator<std::string> end;
+  istream_iterator<string> it(buffer);
+  istream_iterator<string> end;
 
-  const std::vector<std::string> results(it, end);
+  const vector<string> results(it, end);
 
   const size_t new_size = (size_t)results.size();
 
   this->resize(new_size);
 
   file.clear();
-  file.seekg(0, std::ios::beg);
+  file.seekg(0, ios::beg);
 
   // Read data
 
@@ -5676,25 +9468,25 @@ template <class T> void Vector<T>::load(const std::string &file_name) {
   file.close();
 }
 
-// void save(const std::string&) const method
+// void save(const string&) const method
 
 /// Saves to a data file the elements of the vector.
 /// The file format is as follows:
 /// element_0 element_1 ... element_N-1
 /// @param file_name Name of vector data file.
 
-template <class T> void Vector<T>::save(const std::string &file_name) const
+template <class T> void Vector<T>::save(const string &file_name, const char& separator) const
 {
-  std::ofstream file(file_name.c_str());
+  ofstream file(file_name.c_str());
 
   if(!file.is_open()) {
-    std::ostringstream buffer;
+    ostringstream buffer;
 
     buffer << "OpenNN Exception: Vector template.\n"
-           << "void save(const std::string&) const method.\n"
+           << "void save(const string&) const method.\n"
            << "Cannot open vector data file.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
   // Write file
@@ -5704,21 +9496,17 @@ template <class T> void Vector<T>::save(const std::string &file_name) const
   if(this_size > 0) {
     file << (*this)[0];
 
-    const char space = ' ';
-
     for (size_t i = 1; i < this_size; i++) {
-      file << space << (*this)[i];
+      file << separator << (*this)[i];
     }
 
-    file << std::endl;
+    file << endl;
   }
 
   // Close file
 
   file.close();
 }
-
-// void tuck_in(const size_t&, const Vector<T>&) const method
 
 /// Insert another vector starting from a given position.
 /// @param position Insertion position.
@@ -5735,13 +9523,13 @@ void Vector<T>::tuck_in(const size_t &position, const Vector<T> &other_vector) {
   const size_t this_size = this->size();
 
   if(position + other_size > this_size) {
-    std::ostringstream buffer;
+    ostringstream buffer;
 
     buffer << "OpenNN Exception: Vector Template.\n"
            << "void tuck_in(const size_t&, const Vector<T>&) const method.\n"
            << "Cannot tuck in vector.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
 #endif
@@ -5751,7 +9539,6 @@ void Vector<T>::tuck_in(const size_t &position, const Vector<T> &other_vector) {
   }
 }
 
-// Vector<T> take_out(const size_t&, const size_t&) method
 
 /// Extract a vector of a given size from a given position
 /// @param position Extraction position.
@@ -5767,13 +9554,13 @@ Vector<T> Vector<T>::take_out(const size_t &position,
   const size_t this_size = this->size();
 
   if(position + other_size > this_size) {
-    std::ostringstream buffer;
+    ostringstream buffer;
 
     buffer << "OpenNN Exception: Vector Template.\n"
            << "Vector<T> take_out(const size_t&, const size_t&) method.\n"
            << "Cannot take out vector.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
 #endif
@@ -5789,14 +9576,14 @@ Vector<T> Vector<T>::take_out(const size_t &position,
   return (other_vector);
 }
 
-// void insert_element(const size_t& index, const T& value) method
 
 /// Returns a new vector with a new element inserted.
 /// @param index Position of the new element.
 /// @param value Value of the new element.
 
 template <class T>
-Vector<T> Vector<T>::insert_element(const size_t &index, const T &value) const {
+Vector<T> Vector<T>::insert_element(const size_t &index, const T &value) const
+{
   const size_t this_size = this->size();
 
 // Control sentence (if debug)
@@ -5804,35 +9591,118 @@ Vector<T> Vector<T>::insert_element(const size_t &index, const T &value) const {
 #ifdef __OPENNN_DEBUG__
 
   if(index > this_size) {
-    std::ostringstream buffer;
+    ostringstream buffer;
 
     buffer
         << "OpenNN Exception: Vector Template.\n"
         << "void insert_element(const size_t& index, const T& value) method.\n"
         << "Index is greater than vector size.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
 #endif
 
-  Vector<T> other_vector(this_size + 1);
+  Vector<T> other_vector(*this);
 
-  for (size_t i = 0; i <= this_size; i++) {
-    if(i < index) {
-      other_vector[i] = (*this)[i];
-    }
-    if(i == index) {
-      other_vector[i] = value;
-    } else if(i > index) {
-      other_vector[i] = (*this)[i - 1];
-    }
-  }
+  const auto it = other_vector.begin();
+
+  other_vector.insert(it+index, value);
 
   return (other_vector);
 }
 
-// Vector<T> remove_element(const size_t) const
+
+/// Returns a new vector where a given element of this vector is replaced by another vector.
+/// @param index Index of the element to be replaced.
+/// @param other_vector Replacement vector.
+
+template <class T>
+Vector<T> Vector<T>::replace_element(const size_t &index, const Vector<T> &other_vector) const {
+  const size_t this_size = this->size();
+
+// Control sentence (if debug)
+
+#ifdef __OPENNN_DEBUG__
+
+  if(index > this_size) {
+    ostringstream buffer;
+
+    buffer
+        << "OpenNN Exception: Vector Template.\n"
+        << "void insert_element(const size_t& index, const T& value) method.\n"
+        << "Index is greater than vector size.\n";
+
+    throw logic_error(buffer.str());
+  }
+
+#endif
+
+  const size_t other_size = other_vector.size();
+  const size_t new_size = this_size - 1 + other_size;
+
+  Vector<T> new_vector(new_size);
+
+  for(size_t i = 0; i < index; i++)
+  {
+      new_vector[i] = (*this)[i];
+  }
+
+  for(size_t i = index; i < index+other_size; i++)
+  {
+      new_vector[i] = other_vector[i-index];
+  }
+
+  for(size_t i = index+other_size; i < new_size; i++)
+  {
+      new_vector[i] = (*this)[i+1-other_size];
+  }
+
+  return(new_vector);
+}
+
+
+/// Returns a new vector where a given value has been replaced by another one.
+/// @param find Value to be replaced.
+/// @param replace Replacement value.
+
+template <class T>
+Vector<T> Vector<T>::replace_value(const T& find, const T& replace) const {
+
+  const size_t this_size = this->size();
+
+  Vector<T> new_vector(this_size);
+
+  for(size_t i = 0; i < this_size; i++)
+  {
+      if((*this)[i] == find)
+      {
+          new_vector[i] = replace;
+      }
+      else
+      {
+          new_vector[i] = (*this)[i];
+      }
+  }
+
+  return(new_vector);
+
+}
+
+
+/// Splits a string slement into substrings wherever delimiter occurs, and returns the vector of those strings.
+/// If sep does not match anywhere in the string, this method returns a single-element vector containing this string.
+/// @param index Index of elements.
+/// @param delimiter Separator char.
+
+template <class T>
+Vector<string> Vector<T>::split_element(const size_t &index, const char &delimiter) const {
+
+   const Vector<string> split(split_string((*this)[index], delimiter));
+
+   return(split);
+}
+
 
 /// Returns a new vector which is a copy of this vector but with a given element
 /// removed.
@@ -5848,13 +9718,13 @@ Vector<T> Vector<T>::remove_element(const size_t &index) const {
 #ifdef __OPENNN_DEBUG__
 
   if(index >= this_size) {
-    std::ostringstream buffer;
+    ostringstream buffer;
 
     buffer << "OpenNN Exception: Vector Template.\n"
            << "Vector<T> remove_element(const size_t&) const method.\n"
            << "Index is equal or greater than vector size.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
 #endif
@@ -5872,13 +9742,68 @@ Vector<T> Vector<T>::remove_element(const size_t &index) const {
   return (other_vector);
 }
 
-// Vector<T> remove_value(const T&) const
+
+/// Returns a new vector which is a copy of this vector but with a given elements
+/// removed.
+/// Therefore, the size of the new vector is the size of this vector minus the indices vector size.
+/// @param indices Vector with the indices of the elements to be removed.
+
+template <class T>
+Vector<T> Vector<T>::delete_indices(const Vector<size_t> &indices) const
+{
+    const size_t this_size = this->size();
+    const size_t indices_size = indices.size();
+
+  // Control sentence (if debug)
+
+  #ifdef __OPENNN_DEBUG__
+
+    if(indices.calculate_maximum() >= this_size) {
+      ostringstream buffer;
+
+      buffer << "OpenNN Exception: Vector Template.\n"
+             << "Vector<T> remove_elements(const Vector<size_t>&) const method.\n"
+             << "Maximum index is equal or greater than vector size.\n";
+
+      throw logic_error(buffer.str());
+    }
+
+    if(indices_size >= this_size) {
+      ostringstream buffer;
+
+      buffer << "OpenNN Exception: Vector Template.\n"
+             << "Vector<T> remove_elements(const Vector<size_t>&) const method.\n"
+             << "Number of indices to remove is equal or greater than vector size.\n";
+
+      throw logic_error(buffer.str());
+    }
+
+  #endif
+
+    Vector<T> other_vector(this_size - indices_size);
+
+    size_t index = 0;
+
+    for (size_t i = 0; i < this_size; i++)
+    {
+        if(!indices.contains(i))
+        {
+            other_vector[index] = (*this)[i];
+
+            index++;
+        }
+    }
+
+    return (other_vector);
+}
+
 
 /// Construct a copy of this vector but without a certain value.
 /// Note that the new vector might have a different size than this vector.
 /// @param value Value of elements to be removed.
 
-template <class T> Vector<T> Vector<T>::remove_value(const T &value) const {
+template <class T> Vector<T> Vector<T>::remove_value(const T &value) const
+{
   const size_t this_size = this->size();
 
   size_t value_count = 0;
@@ -5910,13 +9835,12 @@ template <class T> Vector<T> Vector<T>::remove_value(const T &value) const {
   }
 }
 
-// Vector<T> assemble(const Vector<T>&) const method
 
 /// Assemble two vectors.
 /// @param other_vector Vector to be get_assemblyd to this vector.
 
 template <class T>
-Vector<T> Vector<T>::assemble(const Vector<T> &other_vector) const {
+Vector<T> Vector<T>::assemble(const Vector<T> &other_vector) const  {
   const size_t this_size = this->size();
   const size_t other_size = other_vector.size();
 
@@ -5943,14 +9867,330 @@ Vector<T> Vector<T>::assemble(const Vector<T> &other_vector) const {
   }
 }
 
-// std::vector<T> to_std_vector(void) const method
+
+/// Assemble a vector of vectors to this vector.
+/// @param vectors Vector of vectors to be get_assembled to this vector.
+
+template <class T>
+Vector<T> Vector<T>::assemble(const Vector< Vector<T> >& vectors)
+{
+    const size_t vectors_size = vectors.size();
+
+    size_t new_size;
+
+    for(size_t i = 0; i < vectors_size; i++)
+    {
+        new_size += vectors[i].size();
+    }
+
+    Vector<T> new_vector(new_size);
+
+    size_t index = 0;
+
+    for(size_t i = 0; i < vectors_size; i++)
+    {
+        for(size_t j = 0; j < vectors[i].size(); j++)
+        {
+            new_vector[index] = vectors[i][j];
+            index++;
+        }
+    }
+
+    return(new_vector);
+}
+
+
+/// Returns a vector which is the difference of this vector and another vector.
+/// For instance, if this vector is (1,2,3) and the other vector is (1,4,3,3),
+/// the difference is (2), the element in the first vector which is not present in the second.
+/// @param other_vector Other vector.
+
+template <class T>
+Vector<T> Vector<T>::get_difference(const Vector<T> &other_vector) const
+{
+    if(this->empty())
+    {
+        return other_vector;
+    }
+
+    if(other_vector.empty())
+    {
+        Vector<T> copy(*this);
+        return copy;
+    }
+
+    const size_t this_size = this->size();
+
+    Vector<T> difference(this_size);
+    typename vector<T>::iterator iterator;
+
+    Vector<T> copy_this(*this);
+    Vector<T> copy_other_vector(other_vector);
+
+    sort(copy_this.begin(), copy_this.end());
+    sort(copy_other_vector.begin(), copy_other_vector.end());
+
+    iterator = set_difference(copy_this.begin(),copy_this.end(), copy_other_vector.begin(), copy_other_vector.end(), difference.begin());
+
+    difference.resize(iterator - difference.begin());
+
+    return(difference);
+}
+
+
+/// Returns a vector which is the union of this vector and another vector.
+/// For instance, if this vector is (1,2,3) and the other vector is (2,3,4),
+/// the union is (2,3), the elements that are present in the two vectors.
+/// @param other_vector Other vector.
+
+template <class T>
+Vector<T> Vector<T>::get_union(const Vector<T>& other_vector) const
+{
+    Vector<T> this_copy(*this);
+    sort(this_copy.begin(), this_copy.end());
+
+    Vector<T> other_copy(other_vector);
+    sort(other_copy.begin(), other_copy.end());
+
+    Vector<T> union_vector;
+
+    set_union(this_copy.begin(), this_copy.end(), other_copy.begin(), other_copy.end(), back_inserter(union_vector));
+
+    return union_vector;
+}
+
+
+/// Returns a vector with the intersection of this vector and another vector.
+/// For instance, if this vector is (a, b, c) and the other vector is (b, c, d, e),
+/// the new vector will be (b, c).
+/// @param other_vector Other vector.
+
+template <class T>
+Vector<T> Vector<T>::get_intersection(const Vector<T>& other_vector) const
+{
+    Vector<T> this_copy(*this);
+    sort(this_copy.begin(), this_copy.end());
+
+    Vector<T> other_copy(other_vector);
+    sort(other_copy.begin(), other_copy.end());
+
+    Vector<T> intersection;
+
+    set_intersection(this_copy.begin(), this_copy.end(), other_copy.begin(), other_copy.end(), back_inserter(intersection));
+
+    return intersection;
+}
+
+
+/// Returns a vector with the unique values of the vector.
+/// For instance, if the vector is (a, b, a), the new vector will be (a, b).
+
+template <class T>
+Vector<T> Vector<T>::get_unique_elements(void) const
+{
+    Vector<T> copy_vector(*this);
+
+    sort(copy_vector.begin(), copy_vector.end());
+
+    const auto last = unique(copy_vector.begin(), copy_vector.end());
+
+    copy_vector.erase(last, copy_vector.end());
+
+    return(copy_vector);
+}
+
+
+template <class T>
+Vector<T> Vector<T>::get_unique_elements_unsorted(void) const
+{
+    Vector<T> copy_vector(*this);
+
+    const auto last = unique(copy_vector.begin(), copy_vector.end());
+
+    copy_vector.erase(last, copy_vector.end());
+
+    return(copy_vector);
+}
+
+
+/// Returns a vector with the indices of the unique elements, in the order given by the get_unique_elements method.
+/// For instance, if the input vector is (a, b, a), the output vector is (0, 1).
+
+template <class T>
+Vector<size_t> Vector<T>::get_unique_elements_indices(void) const
+{
+    const Vector<T> unique_values = get_unique_elements();
+
+    const size_t unique_size = unique_values.size();
+
+    Vector<size_t> unique_indices(unique_size);
+
+    for(size_t i = 0; i < unique_size; i++)
+    {
+        unique_indices[i] = get_first_index(unique_values[i]);
+    }
+
+    return(unique_indices);
+}
+
+
+/// Returns a vector with the numbers of the unique elements, in the order given by the get_unique_elements method.
+/// For instance, if the input vector is (a, b, a), the output vector is (2, 1).
+
+template <class T>
+Vector<size_t> Vector<T>::count_unique(void) const
+{
+    const Vector<T> unique = get_unique_elements();
+
+    const size_t unique_size = unique.size();
+
+    Vector<size_t> unique_count(unique_size);
+
+#pragma omp parallel for
+
+    for(int i = 0; i < unique_size; i++)
+    {
+        unique_count[i] = count_equal_to(unique[i]);
+    }
+
+    return(unique_count);
+}
+
+
+/// Prints to the screen the unique elements of the vector, the number of that elements and the corresponding percentage.
+/// It sorts the elements from greater to smaller.
+/// For instance, for the vector (a, b, a), it will print
+/// a: 2 (66.6%), b: 1 (33.3%).
+
+template <class T>
+void Vector<T>::print_unique(void) const
+{
+    const size_t this_size = this->size();
+
+    const Vector<T> unique = get_unique_elements();
+
+    const Vector<size_t> count = count_unique();
+
+    const Vector<double> percentage = count_unique().to_double_vector()*(100.0/(double)this_size);
+
+    const size_t unique_size = unique.size();
+
+    Matrix<T> unique_matrix(unique_size, 3);
+    unique_matrix.set_column(0, unique.to_string_vector());
+    unique_matrix.set_column(1, count.to_string_vector());
+    unique_matrix.set_column(2, percentage.to_string_vector());
+
+    unique_matrix = unique_matrix.sort_descending_strings(1);
+
+    cout << "Total: " << this_size << endl;
+
+    for(size_t i = 0; i < unique_size; i++)
+    {
+        cout << unique_matrix(i,0) << ": " << unique_matrix(i,1) << " (" <<  unique_matrix(i,2) << "%)" << endl;
+    }
+}
+
+
+template <class T>
+Vector<T> Vector<T>::calculate_top(const size_t& rank) const
+{
+    const Vector<T> unique = get_unique_elements();
+
+    const Vector<size_t> count = count_unique();
+
+    const size_t unique_size = unique.size();
+
+    Matrix<T> unique_matrix(unique_size, 2);
+    unique_matrix.set_column(0, unique.to_string_vector());
+    unique_matrix.set_column(1, count.to_string_vector());
+
+    unique_matrix = unique_matrix.sort_descending_strings(1);
+
+    const size_t end = unique_size < rank ? unique_size : rank;
+
+    const Vector<T> top = unique_matrix.get_column(0).get_first(end);
+
+   return(top);
+}
+
+
+
+template <class T>
+Matrix<T> Vector<T>::calculate_top_matrix(const size_t& rank) const
+{
+    const Vector<T> unique = get_unique_elements();
+
+    const Vector<size_t> count = count_unique();
+
+    const size_t this_size = this->size();
+
+    const Vector<double> percentage = count_unique().to_double_vector()*(100.0/(double)this_size);
+
+    const size_t unique_size = unique.size();
+
+    Matrix<T> unique_matrix(unique_size, 3);
+    unique_matrix.set_column(0, unique.to_string_vector());
+    unique_matrix.set_column(1, count.to_string_vector());
+    unique_matrix.set_column(2, percentage.to_string_vector());
+
+    unique_matrix = unique_matrix.sort_descending_strings(1);
+
+    const Vector<size_t> indices(0,1,rank-1);
+
+    if (rank < unique_size)
+    {
+        unique_matrix = unique_matrix.get_submatrix_rows(indices);
+
+        return(unique_matrix);
+    }
+    else
+    {
+        return(unique_matrix);
+    }
+}
+
+
+/// Prints to the screen the unique elements of the vector, the number of that elements and the corresponding percentage.
+/// It sorts the elements from greater to smaller and only prints the top ones.
+/// @param rank Number of top elements that are printed.
+
+template <class T>
+void Vector<T>::print_top(const size_t& rank) const
+{
+    const Vector<T> unique = get_unique_elements();
+
+    const Vector<size_t> count = count_unique();
+
+    const size_t this_size = this->size();
+
+    const Vector<double> percentage = count_unique().to_double_vector()*(100.0/(double)this_size);
+
+    const size_t unique_size = unique.size();
+
+    if(unique_size == 0) return;
+
+    Matrix<T> unique_matrix(unique_size, 3);
+    unique_matrix.set_column(0, unique.to_string_vector());
+    unique_matrix.set_column(1, count.to_string_vector());
+    unique_matrix.set_column(2, percentage.to_string_vector());
+
+    unique_matrix = unique_matrix.sort_descending_strings(1);
+
+    const size_t end = unique_size < rank ? unique_size : rank;
+
+    for(size_t i = 0; i < end; i++)
+    {
+        cout << i+1 << ". " << unique_matrix(i,0) << ": " << unique_matrix(i,1) << " (" <<  unique_matrix(i,2) << "%)" << endl;
+    }
+}
+
 
 /// Returns a std vector with the size and elements of this OpenNN vector.
 
-template <class T> std::vector<T> Vector<T>::to_std_vector(void) const {
+template <class T> vector<T> Vector<T>::to_std_vector(void) const {
   const size_t this_size = this->size();
 
-  std::vector<T> std_vector(this_size);
+  vector<T> std_vector(this_size);
 
   for (size_t i = 0; i < this_size; i++) {
     std_vector[i] = (*this)[i];
@@ -5958,6 +10198,692 @@ template <class T> std::vector<T> Vector<T>::to_std_vector(void) const {
 
   return (std_vector);
 }
+
+
+/// Returns a new vector with the elements of this vector casted to double.
+
+template <class T> Vector<double> Vector<T>::to_double_vector(void) const
+{
+  const size_t this_size = this->size();
+
+  Vector<double> double_vector(this_size);
+
+  for (size_t i = 0; i < this_size; i++)
+  {
+      double_vector[i] = (double)(*this)[i];
+  }
+
+  return (double_vector);
+}
+
+
+/// Returns a new vector with the elements of this vector casted to int.
+
+template <class T>
+Vector<int> Vector<T>::to_int_vector(void) const {
+  const size_t this_size = this->size();
+
+  Vector<int> int_vector(this_size);
+
+  for (size_t i = 0; i < this_size; i++)
+  {
+      int_vector[i] = (int)(*this)[i];
+   }
+
+  return (int_vector);
+}
+
+
+/// Returns a new vector with the elements of this vector casted to size_t.
+
+template <class T>
+Vector<size_t> Vector<T>::to_size_t_vector(void) const {
+  const size_t this_size = this->size();
+
+  Vector<size_t> size_t_vector(this_size);
+
+  for (size_t i = 0; i < this_size; i++)
+  {
+      size_t_vector[i] = (size_t)(*this)[i];
+   }
+
+  return (size_t_vector);
+}
+
+
+/// Returns a new vector with the elements of this vector casted to time_t.
+
+template <class T>
+Vector<time_t> Vector<T>::to_time_t_vector(void) const {
+  const size_t this_size = this->size();
+
+  Vector<time_t> size_t_vector(this_size);
+
+  for (size_t i = 0; i < this_size; i++)
+  {
+      size_t_vector[i] = (time_t)(*this)[i];
+   }
+
+  return (size_t_vector);
+}
+
+
+template <class T>
+Vector<bool> Vector<T>::to_bool_vector(void) const
+{
+  const Vector<T> unique = get_unique_elements();
+
+  if(unique.size() != 2)
+  {
+       ostringstream buffer;
+
+       buffer << "OpenNN Exception: Vector Template.\n"
+              << "Vector<bool> to_bool_vector() const.\n"
+              << "Number of unique items (" << get_unique_elements().size() << ") must be 2.\n";
+
+       throw logic_error(buffer.str());
+  }
+
+  const size_t this_size = this->size();
+
+  Vector<bool> new_vector(this_size);
+
+  for (size_t i = 0; i < this_size; i++)
+  {
+      if((*this)[i] == unique[0])
+      {
+          new_vector[i] = true;
+      }
+      else
+      {
+          new_vector[i] = false;
+      }
+  }
+
+  return (new_vector);
+}
+
+
+/// Returns a new vector with the elements of this vector converted to string.
+
+template <class T> Vector<string> Vector<T>::to_string_vector(void) const {
+  const size_t this_size = this->size();
+
+  Vector<string> string_vector(this_size);
+  ostringstream buffer;
+
+    for (size_t i = 0; i < this_size; i++)
+    {
+      buffer.str("");
+      buffer << (*this)[i];
+
+      string_vector[i] = buffer.str();
+   }
+
+  return (string_vector);
+}
+
+
+/// Returns a new vector with the elements of this vector casted to double.
+
+template <class T> Vector<double> Vector<T>::string_to_double(void) const {
+  const size_t this_size = this->size();
+
+  Vector<double> double_vector(this_size);
+
+  for (size_t i = 0; i < this_size; i++)
+  {
+      try
+      {
+          double_vector[i] = stod((*this)[i]);
+      }
+      catch(const logic_error&)
+      {
+         double_vector[i] = -99.9;
+      }
+   }
+
+  return (double_vector);
+}
+
+
+/// Returns a new vector with the elements of this string vector converted to double.
+
+template <class T> Vector<int> Vector<T>::string_to_int(void) const {
+  const size_t this_size = this->size();
+
+  Vector<int> int_vector(this_size);
+
+  for (size_t i = 0; i < this_size; i++)
+  {
+      try
+      {
+          int_vector[i] = stoi((*this)[i]);
+      }
+      catch(const logic_error&)
+      {
+         int_vector[i] = -999999;
+      }
+   }
+
+  return (int_vector);
+}
+
+
+/// Returns a new vector with the elements of this string vector converted to size_t.
+
+template <class T> Vector<size_t> Vector<T>::string_to_size_t(void) const {
+  const size_t this_size = this->size();
+
+  Vector<size_t> size_t_vector(this_size);
+
+  for (size_t i = 0; i < this_size; i++)
+  {
+      try
+      {
+          size_t_vector[i] = (size_t)stoi((*this)[i]);
+      }
+      catch(const logic_error&)
+      {
+         size_t_vector[i] = 999999;
+      }
+   }
+
+  return (size_t_vector);
+}
+
+
+/// Returns a new vector with the elements of this string vector converted to time_t.
+
+template <class T> Vector<time_t> Vector<T>::string_to_time_t(void) const {
+  const size_t this_size = this->size();
+
+  Vector<time_t> time_vector(this_size);
+
+  for (size_t i = 0; i < this_size; i++)
+  {
+      try
+      {
+          time_vector[i] = (time_t)stoi((*this)[i]);
+      }
+      catch(const logic_error&)
+      {
+         time_vector[i] = -1;
+      }
+   }
+
+  return (time_vector);
+}
+
+
+/// Takes a string vector representing a date in the format Mon Jan 30 2017 12:52:24 and returns a timestamp vector.
+
+template <class T>
+Vector<time_t> Vector<T>::www_mmm_ddd_yyyy_hh_mm_ss_to_time(void) const
+{
+  const size_t this_size = this->size();
+
+  Vector<time_t> time_vector(this_size);
+
+  //Mon Jan 30 2017 12:52:24
+
+  vector<string> date_elements;
+  vector<string> time_elements;
+
+  int year;
+  int month;
+  int month_day;
+  int hours;
+  int minutes;
+  int seconds;
+
+  for (size_t i = 0; i < this_size; i++)
+  {
+      date_elements = split_string((*this)[i], ' ');
+
+      // Month
+
+      if(date_elements[1] == "Jan")
+      {
+          month = 1;
+      }
+      else if (date_elements[1] == "Feb")
+      {
+          month = 2;
+      }
+      else if (date_elements[1] == "Mar")
+      {
+          month = 3;
+      }
+      else if (date_elements[1] == "Apr")
+      {
+          month = 4;
+      }
+      else if (date_elements[1] == "May")
+      {
+          month = 5;
+      }
+      else if (date_elements[1] == "Jun")
+      {
+          month = 6;
+      }
+      else if (date_elements[1] == "Jul")
+      {
+          month = 7;
+      }
+      else if (date_elements[1] == "Aug")
+      {
+          month = 8;
+      }
+      else if (date_elements[1] == "Sep")
+      {
+          month = 9;
+      }
+      else if (date_elements[1] == "Oct")
+      {
+          month = 10;
+      }
+      else if (date_elements[1] == "Nov")
+      {
+          month = 11;
+      }
+      else if (date_elements[1] == "Dec")
+      {
+          month = 12;
+      }
+      else
+      {
+          cout << "Unknown month: " << month << endl;
+      }
+
+      // Month day
+
+      month_day = stoi(date_elements[2]);
+
+      // Year
+
+      year = stoi(date_elements[3]);
+
+      // Time
+
+      time_elements = split_string(date_elements[4], ':');
+
+      hours = stoi(time_elements[0]);
+      minutes = stoi(time_elements[1]);
+      seconds = stoi(time_elements[2]);
+
+      struct tm  timeinfo;
+      timeinfo.tm_year = year - 1900;
+      timeinfo.tm_mon = month - 1;
+      timeinfo.tm_mday = month_day;
+
+      timeinfo.tm_hour = hours;
+      timeinfo.tm_min = minutes;
+      timeinfo.tm_sec = seconds;
+
+      time_vector[i] = mktime(&timeinfo);
+   }
+
+  return (time_vector);
+}
+
+
+template <class T>
+Vector<time_t> Vector<T>::yyyy_mm_to_time(const char& delimiter) const
+{
+  const size_t this_size = this->size();
+
+  Vector<time_t> time(this_size);
+
+  vector<string> date_elements;
+
+  int mm;
+  int yyyy;
+
+  for (size_t i = 0; i < this_size; i++)
+  {
+      date_elements = split_string((*this)[i], delimiter);
+
+      if (date_elements.size() == 0)
+      {
+          time[i] = 0;
+      }
+      else if(date_elements.size() != 2)
+      {
+          ostringstream buffer;
+
+          buffer << "OpenNN Exception: Vector Template.\n"
+                 << "Vector<time_t> mm_yyyy_to_time(void) const method.\n"
+                 << "Element " << i << " has a wrong format: \"" << (*this)[i] << "\"" << endl;
+
+          throw logic_error(buffer.str());
+      }
+      else
+      {
+          // Month
+
+          mm = stoi(date_elements[1]);
+
+          // Year
+
+          yyyy = stoi(date_elements[0]);
+
+          struct tm time_info = {0};
+
+          time_info.tm_year = yyyy - 1900;
+          time_info.tm_mon = mm - 1;
+          time_info.tm_mday = 1;
+
+          time[i] = mktime(&time_info) + 3600*24;
+
+          if(time[i] == (time_t)-1)
+          {
+              ostringstream buffer;
+
+              buffer << "OpenNN Exception: Vector Template.\n"
+                     << "Vector<time_t> dd_mm_yyyy_to_time(void) const method.\n"
+                     << "Element " << i << " can not be converted to time_t: \"" << (*this)[i] << "\"" << endl;
+
+              throw logic_error(buffer.str());
+          }
+      }
+   }
+
+  return(time);
+}
+
+
+/// Takes a string vector representing a date with day, month and year and returns a timestamp vector.
+/// For instance, 21/12/2017 or 21-12-2017 to 1513814400.
+/// @param delimiter Char between year, month and day (/, -, etc).
+
+template <class T>
+Vector<time_t> Vector<T>::dd_mm_yyyy_to_time(const char& delimiter) const
+{
+  const size_t this_size = this->size();
+
+  Vector<time_t> time(this_size);
+
+  vector<string> date_elements;
+
+  int dd;
+  int mm;
+  int yyyy;
+
+  for (size_t i = 0; i < this_size; i++)
+  {
+      date_elements = split_string((*this)[i], delimiter);
+
+      if (date_elements.size() == 0)
+      {
+          time[i] = 0;
+      }
+      else if(date_elements.size() != 3)
+      {
+          ostringstream buffer;
+
+          buffer << "OpenNN Exception: Vector Template.\n"
+                 << "Vector<time_t> dd_mm_yyyy_to_time(void) const method.\n"
+                 << "Element " << i << " has a wrong format: \"" << (*this)[i] << "\"" << endl;
+
+          throw logic_error(buffer.str());
+      }
+      else
+      {
+          // Month day
+
+          dd = stoi(date_elements[0]);
+
+          // Month
+
+          mm = stoi(date_elements[1]);
+
+          // Year
+
+          yyyy = stoi(date_elements[2]);
+
+          struct tm time_info = {0};
+
+          time_info.tm_year = yyyy - 1900;
+          time_info.tm_mon = mm - 1;
+          time_info.tm_mday = dd;
+
+          time[i] = mktime(&time_info) + 3600*24;
+
+          if(time[i] == (time_t)-1)
+          {
+              ostringstream buffer;
+
+              buffer << "OpenNN Exception: Vector Template.\n"
+                     << "Vector<time_t> dd_mm_yyyy_to_time(void) const method.\n"
+                     << "Element " << i << " can not be converted to time_t: \"" << (*this)[i] << "\"" << endl;
+
+              throw logic_error(buffer.str());
+          }
+      }
+   }
+
+  return(time);
+}
+
+
+/// Takes a string vector representing a date with year, month and day and returns a timestamp vector.
+/// For instance, 2017/12/21 or 2017-12-21 to 1513814400.
+/// @param delimiter Char between year, month and day (/, -, etc).
+
+template <class T>
+Vector<time_t> Vector<T>::yyyy_mm_dd_to_time(const char& delimiter) const
+{
+  const size_t this_size = this->size();
+
+  Vector<time_t> time(this_size);
+
+   #pragma omp parallel for
+
+  for(int i = 0; i < this_size; i++)
+  {
+      const vector<string> date_elements = split_string((*this)[i], delimiter);
+
+      if(date_elements.size() != 3)
+      {
+          ostringstream buffer;
+
+          buffer << "OpenNN Exception: Vector Template.\n"
+                 << "Vector<time_t> yyyy_mm_dd_to_time(cont char&) const method.\n"
+                 << "Date elements of row " << i << " must be 3: \"" << (*this)[i] << "\"" << endl;
+
+          throw logic_error(buffer.str());
+      }
+
+      // Year
+
+      const int yyyy = stoi(date_elements[0]);
+
+      // Month
+
+      const int mm = stoi(date_elements[1]);
+
+      // Month day
+
+      const int dd = stoi(date_elements[2]);
+
+      struct tm time_info={0};
+
+      time_info.tm_year = yyyy - 1900;
+      time_info.tm_mon = mm - 1;
+      time_info.tm_mday = dd;
+
+      time[i] = mktime(&time_info);
+
+//      if(time[i] == (time_t)-1)
+//      {
+//          buffer << "OpenNN Exception: Vector Template.\n"
+//                 << "Vector<time_t> yyyy_mm_dd_to_time(cont char&) const method.\n"
+//                 << "Element " << i << " can not be converted to time_t: \"" << (*this)[i] << "\"" << endl;
+
+//          throw logic_error(buffer.str());
+//      }
+   }
+
+  return(time);
+}
+
+
+/// Takes a string vector representing a date with day, month and year
+/// and returns a string vector representing a date with day of the year and year.
+/// For instance, 02/10/2017 to 41/2017.
+/// @param delimiter Char between day, month and year (/, -, etc).
+
+template <class T>
+Matrix<T> Vector<T>::dd_mm_yyyy_to_dd_yyyy(const char& delimiter) const
+{
+    const size_t this_size = this->size();
+
+    const Vector<time_t> time = this->dd_mm_yyyy_to_time(delimiter);
+
+    Matrix<T> output(this_size,2);
+
+    struct tm* date_info;
+
+    for(size_t i = 0; i < this_size; i++)
+    {
+        date_info = gmtime(&time[i]);
+
+        output(i, 0) = to_string(date_info->tm_yday + 1);
+        output(i, 1) = to_string(date_info->tm_year + 1900);
+    }
+
+    return(output);
+}
+
+
+/// Takes a string vector representing a date with year, month and day
+/// and returns a string vector representing a date with day of the year and year.
+/// For instance, 02/10/2017 to 41/2017.
+/// @param delimiter Char between year, month and day (/, -, etc).
+
+template <class T>
+Matrix<T> Vector<T>::yyyy_mm_dd_to_dd_yyyy(const char& delimiter) const
+{
+    const size_t this_size = this->size();
+
+    const Vector<time_t> time = this->yyyy_mm_dd_to_time(delimiter);
+
+    Matrix<T> output(this_size,2);
+
+    #pragma omp parallel for
+
+    for(int i = 0; i < this_size; i++)
+    {
+        struct tm* date_info = gmtime(&time[i]);
+
+        output(i, 0) = to_string(date_info->tm_yday + 1);
+        output(i, 1) = to_string(date_info->tm_year + 1900);
+    }
+
+    return(output);
+}
+
+
+template <class T>
+Matrix<T> Vector<T>::mm_yyyy_to_mm_yyyy(const char& delimiter) const
+{
+    const size_t this_size = this->size();
+
+    const Vector<time_t> time = this->mm_yyyy_to_time(delimiter);
+
+    Matrix<T> output(this_size,2);
+
+    #pragma omp parallel for
+
+    for(size_t i = 0; i < this_size; i++)
+    {
+        struct tm* date_info = gmtime(&time[i]);
+
+        output(i, 0) = to_string(date_info->tm_yday + 1);
+        output(i, 1) = to_string(date_info->tm_year + 1900);
+    }
+
+    return(output);
+}
+
+
+/// Takes a string vector representing a date with day, month and year
+/// and returns a string vector with the corresponding weekday.
+/// For instance, 2017/12/21 to 5.
+/// @param delimiter Char between year, month and day (/, -, etc).
+
+template <class T>
+Vector<T> Vector<T>::yyyy_mm_dd_to_weekday(const char& delimiter) const
+{
+    const size_t this_size = this->size();
+
+    const Vector<time_t> time = yyyy_mm_dd_to_time(delimiter);
+
+    Vector<T> output(this_size);
+
+    #pragma omp parallel for
+
+    for(int i = 0; i < this_size; i++)
+    {
+        struct tm* date_info = gmtime(&time[i]);
+
+        output[i] = to_string(date_info->tm_wday + 1);
+    }
+
+    return(output);
+}
+
+
+/// Takes a string vector representing a date with year, month and day
+/// and returns a string vector with the corresponding day of the year.
+/// For instance, 2017/02/10 to 41.
+/// @param delimiter Char between year, month and day (/, -, etc).
+
+template <class T>
+Vector<T> Vector<T>::yyyy_mm_dd_to_yearday(const char& delimiter) const
+{
+    const size_t this_size = this->size();
+
+    const Vector<time_t> time = this->yyyy_mm_dd_to_time(delimiter);
+
+    Vector<T> output(this_size);
+
+    #pragma omp parallel for
+
+    for(int i = 0; i < this_size; i++)
+    {
+        struct tm* date_info = gmtime(&time[i]);
+
+        output[i] = to_string(date_info->tm_yday + 1);
+    }
+
+    return(output);
+}
+
+
+template <class T>
+Vector<struct tm> Vector<T>::time_stamp_to_time_structure(void) const
+{
+    const size_t this_size = this->size();
+
+    Vector<struct tm> new_vector(this_size);
+
+    time_t time_stamp;
+    struct tm time_stucture;
+
+    for(size_t i = 0; i < this_size; i++)
+    {
+        time_stamp = (*this)[i];
+
+        time_stucture = *gmtime(&time_stamp);
+
+        new_vector[i] = time_stucture;
+    }
+
+    return(new_vector);
+}
+
 
 // Matrix<T> to_row_matrix(void) const method
 
@@ -5993,22 +10919,23 @@ template <class T> Matrix<T> Vector<T>::to_column_matrix(void) const {
   return (matrix);
 }
 
-// void parse(const std::string&) method
+// void parse(const string&) method
 
 /// This method takes a string representation of a vector and sets this vector
 /// to have size equal to the number of words and values equal to that words.
 /// @param str String to be parsed.
 
-template <class T> void Vector<T>::parse(const std::string &str) {
+template <class T> void Vector<T>::parse(const string &str) {
   if(str.empty()) {
     set();
   } else {
-    std::istringstream buffer(str);
 
-    std::istream_iterator<std::string> first(buffer);
-    std::istream_iterator<std::string> last;
+    istringstream buffer(str);
 
-    Vector<std::string> str_vector(first, last);
+    istream_iterator<string> first(buffer);
+    istream_iterator<string> last;
+
+    Vector<string> str_vector(first, last);
 
     const size_t new_size = str_vector.size();
 
@@ -6016,22 +10943,47 @@ template <class T> void Vector<T>::parse(const std::string &str) {
       this->resize(new_size);
 
       buffer.clear();
-      buffer.seekg(0, std::ios::beg);
+      buffer.seekg(0, ios::beg);
 
       for (size_t i = 0; i < new_size; i++) {
         buffer >> (*this)[i];
       }
     }
-  }
+
+    }
 }
 
-// std::string to_string(const std::string&)
 
 /// Returns a string representation of this vector.
+/// @param separator Char between the elements (, -, /, etc).
+/// @param quotation Quotation char for the elements (", ').
 
 template <class T>
-std::string Vector<T>::to_string(const std::string &separator) const {
-  std::ostringstream buffer;
+string Vector<T>::vector_to_string(const char& separator, const char& quotation) const {
+    ostringstream buffer;
+
+    const size_t this_size = this->size();
+
+    if(this_size > 0) {
+
+        buffer << quotation << (*this)[0] << quotation;
+
+        for (size_t i = 1; i < this_size; i++) {
+
+            buffer << separator << quotation << (*this)[i] << quotation;
+        }
+    }
+
+    return (buffer.str());
+}
+
+
+/// Returns a string representation of this vector.
+/// @param separator Char between the elements (, -, /, etc).
+
+template <class T>
+string Vector<T>::vector_to_string(const char& separator) const {
+  ostringstream buffer;
 
   const size_t this_size = this->size();
 
@@ -6046,49 +10998,105 @@ std::string Vector<T>::to_string(const std::string &separator) const {
   return (buffer.str());
 }
 
-// std::string to_text()
 
-/// Returns a string representation of this vector which can be inserted in a
-/// text.
+/// Returns a string representation of this vector.
 
-template <class T> std::string Vector<T>::to_text() const {
-  std::ostringstream buffer;
+template <class T>
+string Vector<T>::vector_to_string(void) const
+{
+  ostringstream buffer;
 
   const size_t this_size = this->size();
 
-  if(this_size > 0) {
+  if(this_size > 0)
+  {
     buffer << (*this)[0];
 
-    for (size_t i = 1; i < this_size - 1; i++) {
-      buffer << ", " << (*this)[i];
-    }
-
-    if(this_size > 1) {
-      buffer << " and " << (*this)[this_size - 1];
+    for (size_t i = 1; i < this_size; i++)
+    {
+        buffer << ' ' << (*this)[i];
     }
   }
 
   return (buffer.str());
 }
 
-// Vector<std::string> write_string_vector(const size_t& precision) const
+
+template <class T>
+string Vector<T>::stack_vector_to_string(void) const
+{
+  ostringstream buffer;
+
+  const size_t this_size = this->size();
+
+  if(this_size > 0)
+  {
+    buffer << (*this)[0];
+
+    for (size_t i = 1; i < this_size; i++)
+    {
+        buffer << (*this)[i];
+    }
+  }
+
+  return (buffer.str());
+}
+
+
+/// Returns a string representation of this vector which can be inserted in a text.
+
+template <class T> string Vector<T>::to_text(const char& separator) const
+{
+  ostringstream buffer;
+
+  const size_t this_size = this->size();
+
+  if(this_size > 0)
+  {
+    buffer << (*this)[0];
+
+    for (size_t i = 1; i < this_size; i++) {
+      buffer << separator << (*this)[i];
+    }
+  }
+
+  return (buffer.str());
+}
+
+template <class T> string Vector<T>::to_text(const string& separator) const
+{
+  ostringstream buffer;
+
+  const size_t this_size = this->size();
+
+  if(this_size > 0)
+  {
+    buffer << (*this)[0];
+
+    for (size_t i = 1; i < this_size; i++) {
+      buffer << separator << (*this)[i];
+    }
+  }
+
+  return (buffer.str());
+}
 
 /// This method retuns a vector of strings with size equal to the size of this
 /// vector and elements equal to string representations of the elements of this
 /// vector.
 
 template <class T>
-Vector<std::string>
+Vector<string>
 Vector<T>::write_string_vector(const size_t &precision) const {
   const size_t this_size = this->size();
 
-  Vector<std::string> string_vector(this_size);
+  Vector<string> string_vector(this_size);
 
-  std::ostringstream buffer;
+  ostringstream buffer;
 
   for (size_t i = 0; i < this_size; i++) {
     buffer.str("");
-    buffer << std::setprecision(precision) << (*this)[i];
+    buffer << setprecision(precision) << (*this)[i];
 
     string_vector[i] = buffer.str();
   }
@@ -6115,7 +11123,7 @@ Matrix<T> Vector<T>::to_matrix(const size_t &rows_number,
   const size_t this_size = this->size();
 
   if(rows_number * columns_number != this_size) {
-    std::ostringstream buffer;
+    ostringstream buffer;
 
     buffer << "OpenNN Exception: Vector Template.\n"
            << "Matrix<T> to_matrix(const size_t&, const size_t&) method.\n"
@@ -6124,7 +11132,7 @@ Matrix<T> Vector<T>::to_matrix(const size_t &rows_number,
            << ") must be equal to the size of the vector (" << this_size
            << ").\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
 #endif
@@ -6143,13 +11151,100 @@ Matrix<T> Vector<T>::to_matrix(const size_t &rows_number,
   return (matrix);
 }
 
+template <class T>
+double Vector<T>::calculate_logistic_function(const Vector<double>& coefficients, const Vector<T>& x) const
+{
+    const size_t coefficients_size = coefficients.size();
+
+    double exponential = coefficients[0];
+
+    for(size_t i = 1; i < coefficients_size; i++)
+    {
+        exponential += coefficients[i]*x[i-1];
+    }
+
+    return(1.0/(1.0+exp(-exponential)));
+}
+
+template <class T>
+Vector<double> Vector<T>::calculate_logistic_error_gradient(const Vector<double>& coefficients, const Vector<T>& other) const
+{
+    const size_t n = this->size();
+
+    const size_t other_size = this->size();
+
+    Vector<double> error_gradient(3, 0.0);
+
+    size_t negatives_number = 0;
+    size_t positives_number = 0;
+
+    for(size_t i = 0; i < other_size; i++)
+    {
+        if(other[i] == 1)
+        {
+            positives_number++;
+        }
+        else if(other[i] == 0)
+        {
+            negatives_number++;
+        }
+    }
+
+    double negatives_weight = 1.0;
+
+    double positives_weight = 1.0;
+
+    if(positives_number == 0)
+    {
+        positives_weight = 1.0;
+        negatives_weight = 1.0;
+    }
+    else if(negatives_number == 0)
+    {
+        positives_weight = 1.0;
+        negatives_weight = 1.0;
+
+        negatives_number = 1;
+    }
+    else
+    {
+        positives_weight = (double)negatives_number/(double)positives_number;
+    }
+
+#pragma omp parallel for
+
+    for(int i = 0; i < n; i++)
+    {
+        Vector<double> x(1);
+
+        x[0] = (*this)[i];
+
+        double current_logistic_function = calculate_logistic_function(coefficients, x);
+
+        const double gradient_multiply = exp(-(coefficients[0]+coefficients[1]*x[0]))*(other[i] - current_logistic_function)*current_logistic_function*current_logistic_function;
+
+        Vector<double> this_error_gradient(3, 0.0);
+
+        this_error_gradient[0] += (other[i]*positives_weight + (1-other[i])*negatives_weight)*(other[i] - current_logistic_function)*(other[i] - current_logistic_function)/2;
+        this_error_gradient[1] -= (other[i]*positives_weight + (1-other[i])*negatives_weight)*gradient_multiply;
+        this_error_gradient[2] -= (other[i]*positives_weight + (1-other[i])*negatives_weight)*x[0]*gradient_multiply;
+
+#pragma omp critical
+        {
+            error_gradient += this_error_gradient;
+        }
+    }
+
+    return error_gradient/(double)(negatives_weight*negatives_number);
+}
+
 // Vector input operator
 
 /// This method re-writes the inputs operator >> for the Vector template.
 /// @param is Input stream.
 /// @param v Input vector.
 
-template <class T> std::istream &operator>>(std::istream &is, Vector<T> &v) {
+template <class T> istream &operator>>(istream &is, Vector<T> &v) {
   const size_t size = v.size();
 
   for (size_t i = 0; i < size; i++) {
@@ -6166,7 +11261,7 @@ template <class T> std::istream &operator>>(std::istream &is, Vector<T> &v) {
 /// @param v Output vector.
 
 template <class T>
-std::ostream &operator<<(std::ostream &os, const Vector<T> &v) {
+ostream &operator<<(ostream &os, const Vector<T> &v) {
   const size_t this_size = v.size();
 
   if(this_size > 0) {
@@ -6182,6 +11277,7 @@ std::ostream &operator<<(std::ostream &os, const Vector<T> &v) {
   return (os);
 }
 
+
 // Vector of vectors output operator
 
 /// This method re-writes the output operator << for vectors of vectors.
@@ -6189,13 +11285,16 @@ std::ostream &operator<<(std::ostream &os, const Vector<T> &v) {
 /// @param v Output vector of vectors.
 
 template <class T>
-std::ostream &operator<<(std::ostream &os, const Vector< Vector<T> > &v) {
-  for (size_t i = 0; i < v.size(); i++) {
-    os << "subvector_" << i << "\n" << v[i] << std::endl;
+ostream &operator<<(ostream &os, const Vector< Vector<T> > &v)
+{
+  for (size_t i = 0; i < v.size(); i++)
+  {
+    os << "subvector_" << i << "\n" << v[i] << endl;
   }
 
   return (os);
 }
+
 
 // Vector of matrices output operator
 
@@ -6204,13 +11303,16 @@ std::ostream &operator<<(std::ostream &os, const Vector< Vector<T> > &v) {
 /// @param v Output vector of matrices.
 
 template <class T>
-std::ostream &operator<<(std::ostream &os, const Vector< Matrix<T> > &v) {
-  for (size_t i = 0; i < v.size(); i++) {
+ostream &operator<<(ostream &os, const Vector< Matrix<T> > &v)
+{
+  for (size_t i = 0; i < v.size(); i++)
+  {
     os << "submatrix_" << i << "\n" << v[i];
   }
 
   return (os);
 }
+
 
 // double calculate_random_uniform(const double&, const double&) method
 
@@ -6219,22 +11321,28 @@ std::ostream &operator<<(std::ostream &os, const Vector< Matrix<T> > &v) {
 /// @param maximum Maximum value.
 
 template <class T>
-T calculate_random_uniform(const T &minimum, const T &maximum) {
-  const T random = (T)rand() / (RAND_MAX + 1.0);
+T calculate_random_uniform(const T &minimum, const T &maximum)
+{
+  const T random = (T)(rand() / (RAND_MAX + 1.0));
 
   const T random_uniform = minimum + (maximum - minimum) * random;
 
   return (random_uniform);
 }
 
+
+// string number_to_string(const T&) method
+
 template <class T>
-std::string number_to_string(const T &value) {
-  std::ostringstream ss;
+string number_to_string(const T& value)
+{
+  ostringstream ss;
 
   ss << value;
 
   return (ss.str());
 }
+
 
 // double calculate_random_normal(const double&, const double&) method
 
@@ -6264,6 +11372,90 @@ T calculate_random_normal(const T &mean, const T &standard_deviation) {
 
   return (random_normal);
 }
+
+
+template <class T>
+string write_elapsed_time(const T& elapsed_time)
+{
+  string elapsed_time_string;
+
+  const size_t hours = (size_t)(elapsed_time/3600);
+
+  size_t minutes = (size_t)elapsed_time - hours*3600;
+
+  minutes = (size_t)(minutes/60);
+
+  const size_t seconds = (size_t)elapsed_time - hours*3600 - minutes*60;
+
+  if(hours != 0)
+  {
+      elapsed_time_string = to_string(hours) + ":";
+  }
+
+  if(minutes < 10)
+  {
+      elapsed_time_string += "0";
+  }
+  elapsed_time_string += to_string(minutes) + ":";
+
+  if(seconds < 10)
+  {
+      elapsed_time_string += "0";
+  }
+  elapsed_time_string += to_string(seconds);
+
+  return elapsed_time_string;
+}
+
+template <class T>
+string write_date_from_time_t(const T& date)
+{
+    char date_char[20];
+    strftime(date_char, 20, "%d/%m/%Y", localtime(&date));
+
+    const string date_string(date_char);
+
+    return date_string;
+}
+
+
+/// Splits the string into substrings wherever delimiter occurs, and returns the vector of those strings.
+/// If sep does not match anywhere in the string, split() returns a single-element list containing this string.
+/// @param source String to be splited.
+/// @param delimiter Separator between substrings.
+
+template <class T>
+vector<string> split_string(const T& source, const char& delimiter)
+{
+    vector<string> elements;
+    string element;
+
+    istringstream is(source);
+
+    while (getline(is, element, delimiter)) {
+      elements.push_back(element);
+    }
+
+    return(elements);
+}
+
+
+/// Replaces a substring by another one in a given string.
+/// @param source String.
+/// @param find Substring to be replaced.
+/// @param replace Substring to be put.
+
+template <class T>
+void replace_substring(T& source, const T& find, const T& replace)
+{
+    for(string::size_type i = 0; (i = source.find(find, i)) != string::npos;)
+    {
+        source.replace(i, find.length(), replace);
+
+        i += replace.length();
+    }
+}
+
 
 /// This structure contains the simplest statistics for a set, variable, etc.
 /// It includes the minimum, maximum, mean and standard deviation variables.
@@ -6298,23 +11490,23 @@ template <class T> struct Statistics {
   bool has_minimum_minus_one_maximum_one(void);
   bool has_mean_zero_standard_deviation_one(void);
 
-  void save(const std::string &file_name) const;
+  void save(const string &file_name) const;
 
   /// Smallest value of a set, function, etc.
 
-  T minimum;
+  T minimum = 0;
 
   /// Biggest value of a set, function, etc.
 
-  T maximum;
+  T maximum = 0;
 
   /// Mean value of a set, function, etc.
 
-  T mean;
+  T mean = 0;
 
   /// Standard deviation value of a set, function, etc.
 
-  T standard_deviation;
+  T standard_deviation = 0;
 };
 
 template <class T> Statistics<T>::Statistics(void) {
@@ -6323,6 +11515,7 @@ template <class T> Statistics<T>::Statistics(void) {
   mean = (T)0.0;
   standard_deviation = (T)1.0;
 }
+
 
 /// Values constructor.
 
@@ -6426,24 +11619,24 @@ bool Statistics<T>::has_mean_zero_standard_deviation_one(void) {
 /// @param file_name Name of statistics data file.
 
 template <class T>
-void Statistics<T>::save(const std::string &file_name) const {
-  std::ofstream file(file_name.c_str());
+void Statistics<T>::save(const string &file_name) const {
+  ofstream file(file_name.c_str());
 
   if(!file.is_open()) {
-    std::ostringstream buffer;
+    ostringstream buffer;
 
     buffer << "OpenNN Exception: Statistics template.\n"
-           << "void save(const std::string&) const method.\n"
+           << "void save(const string&) const method.\n"
            << "Cannot open statistics data file.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 
   // Write file
 
-  file << "Minimum: " << minimum << std::endl << "Maximum: " << maximum
-       << std::endl << "Mean: " << mean << std::endl
-       << "Standard deviation: " << standard_deviation << std::endl;
+  file << "Minimum: " << minimum << endl << "Maximum: " << maximum
+       << endl << "Mean: " << mean << endl
+       << "Standard deviation: " << standard_deviation << endl;
 
   // Close file
 
@@ -6457,15 +11650,16 @@ void Statistics<T>::save(const std::string &file_name) const {
 /// @param v Output vector.
 
 template <class T>
-std::ostream &operator<<(std::ostream &os, const Statistics<T> &statistics) {
+ostream &operator<<(ostream &os, const Statistics<T> &statistics) {
   os << "Statistics structure\n"
-     << "   Minimum: " << statistics.minimum << std::endl
-     << "   Maximum: " << statistics.maximum << std::endl
-     << "   Mean: " << statistics.mean << std::endl
-     << "   Standard deviation: " << statistics.standard_deviation << std::endl;
+     << "   Minimum: " << statistics.minimum << endl
+     << "   Maximum: " << statistics.maximum << endl
+     << "   Mean: " << statistics.mean << endl
+     << "   Standard deviation: " << statistics.standard_deviation << endl;
 
   return (os);
 }
+
 
 ///
 /// This template contains the data needed to represent a histogram.
@@ -6505,9 +11699,6 @@ template <class T> struct Histogram {
   size_t calculate_bin(const T &) const;
 
   size_t calculate_frequency(const T &) const;
-
-  // Vector<size_t> calculate_total_frequencies(const Vector< Histogram<T> >&)
-  // const;
 
   /// Positions of the bins in the histogram.
 
@@ -6560,7 +11751,7 @@ template <class T> size_t Histogram<T>::get_bins_number(void) const {
 /// Returns the number of bins with zero variates.
 
 template <class T> size_t Histogram<T>::count_empty_bins(void) const {
-  return (frequencies.count_occurrences(0));
+  return (frequencies.count_equal_to(0));
 }
 
 /// Returns the number of variates in the less populated bin.
@@ -6593,9 +11784,9 @@ Vector<T> Histogram<T>::calculate_minimal_centers(void) const {
   const size_t minimum_frequency = calculate_minimum_frequency();
 
   const Vector<size_t> minimal_indices =
-      frequencies.calculate_occurrence_indices(minimum_frequency);
+      frequencies.calculate_equal_to_indices(minimum_frequency);
 
-  return (centers.arrange_subvector(minimal_indices));
+  return (centers.get_subvector(minimal_indices));
 }
 
 /// Returns a vector with the centers of the most populated bins.
@@ -6605,12 +11796,11 @@ Vector<T> Histogram<T>::calculate_maximal_centers(void) const {
   const size_t maximum_frequency = calculate_maximum_frequency();
 
   const Vector<size_t> maximal_indices =
-      frequencies.calculate_occurrence_indices(maximum_frequency);
+      frequencies.calculate_equal_to_indices(maximum_frequency);
 
-  return (centers.arrange_subvector(maximal_indices));
+  return (centers.get_subvector(maximal_indices));
 }
 
-// Vector<size_t> Histogram<T>::calculate_bin(const T&) const
 
 /// Returns the number of the bin to which a given value belongs to.
 /// @param value Value for which we want to get the bin.
@@ -6622,7 +11812,7 @@ template <class T> size_t Histogram<T>::calculate_bin(const T &value) const {
   const double maximum_center = centers[bins_number - 1];
 
   const double length =
-      (double)(maximum_center - minimum_center) / (double)(bins_number - 1);
+      (double)(maximum_center - minimum_center) / (double)(bins_number - 1.0);
 
   double minimum_value = centers[0] - length / 2;
   double maximum_value = minimum_value + length;
@@ -6643,13 +11833,13 @@ template <class T> size_t Histogram<T>::calculate_bin(const T &value) const {
   if(value >= maximum_value) {
     return (bins_number - 1);
   } else {
-    std::ostringstream buffer;
+    ostringstream buffer;
 
     buffer << "OpenNN Exception: Vector Template.\n"
            << "Vector<size_t> Histogram<T>::calculate_bin(const T&) const.\n"
            << "Unknown return value.\n";
 
-    throw std::logic_error(buffer.str());
+    throw logic_error(buffer.str());
   }
 }
 
@@ -6674,10 +11864,10 @@ size_t Histogram<T>::calculate_frequency(const T &value) const {
 /// @param v Output vector.
 
 template <class T>
-std::ostream &operator<<(std::ostream &os, const Histogram<T> &histogram) {
+ostream &operator<<(ostream &os, const Histogram<T> &histogram) {
   os << "Histogram structure\n"
-     << "Centers: " << histogram.centers << std::endl
-     << "Frequencies: " << histogram.frequencies << std::endl;
+     << "Centers: " << histogram.centers << endl
+     << "Frequencies: " << histogram.frequencies << endl;
 
   return (os);
 }
@@ -6699,17 +11889,32 @@ template <class T> struct LinearRegressionParameters {
   /// Correlation coefficient (R-value) of the linear regression.
 
   double correlation;
+
+  void initialize_random(void);
 };
 
+
+/// Initializes the linear regression parameters structure with a random
+/// intercept (), slope (between -1 and 1)
+/// and correlation (between -1 and 1).
+
+template <class T> void LinearRegressionParameters<T>::initialize_random(void)
+{
+  intercept = rand();
+  slope = calculate_random_uniform(-1.0, 1.0);
+  correlation = calculate_random_uniform(-1.0, 1.0);
+}
+
+
 template <class T>
-std::ostream &
-operator<<(std::ostream &os,
+ostream &
+operator<<(ostream &os,
            const LinearRegressionParameters<T> &linear_regression_parameters) {
   os << "Linear regression parameters:\n"
      << "Intercept: " << linear_regression_parameters.intercept << "\n"
      << "Slope: " << linear_regression_parameters.slope << "\n"
      << "Correlation: " << linear_regression_parameters.correlation
-     << std::endl;
+     << endl;
 
   return (os);
 }
@@ -6719,39 +11924,50 @@ operator<<(std::ostream &os,
 /// between two sets x-y.
 ///
 
-template <class T> struct LogisticRegressionParameters {
-  /// Position of the midpoint of the logistic regression.
+template <class T> struct LogisticRegressionParameters
+{
+  /// Independent coefficient of the logistic function.
 
-  double position;
+  double a;
 
-  /// Slope at the midpoint of the logistic regression.
+  /// x coefficient of the logistic function.
 
-  double slope;
+  double b;
 
-  /// Correlation coefficient (R-value) of the logistic regression.
+  /// Correlation coefficient of the logistic regression.
 
   double correlation;
 };
 
 template <class T>
-std::ostream &operator<<(
-    std::ostream &os,
+ostream &operator<<(
+    ostream &os,
     const LogisticRegressionParameters<T> &logistic_regression_parameters) {
   os << "Logistic regression parameters:\n"
-     << "Position: " << logistic_regression_parameters.position << "\n"
-     << "Slope: " << logistic_regression_parameters.slope << "\n"
+     << "a: " << logistic_regression_parameters.a << "\n"
+     << "b: " << logistic_regression_parameters.b << "\n"
      << "Correlation: " << logistic_regression_parameters.correlation
-     << std::endl;
+     << endl;
 
   return (os);
 }
+
+
+template <class T>
+struct KMeansResults
+{
+  Matrix<T> means;
+
+  Vector< Vector<size_t> > clusters;
+
+};
 
 } // end namespace OpenNN
 
 #endif
 
 // OpenNN: Open Neural Networks Library.
-// Copyright (c) 2005-2016 Roberto Lopez.
+// Copyright (C) 2005-2018 Artificial Intelligence Techniques, SL.
 //
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
